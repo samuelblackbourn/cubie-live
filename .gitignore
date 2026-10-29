@@ -1,0 +1,20 @@
+# secrets live in /etc/cubie/*.env on the Pi — never here
+*.env
+!*.env.example
+# the Pi's data dir is never in git
+/var/
+# python
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+# node / site build
+node_modules/
+site/dist/
+# art working files: big files go to R2, see docs/design/00-master-plan.md §5
+art/library/**/*.png
+art/exports/
+*.aseprite~
+# os
+.DS_Store
