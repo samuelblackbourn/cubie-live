@@ -20,6 +20,8 @@ const SHAPES = {
   pick: { haft: 9, head: (put) => { for (let b = -3; b <= 3; b++) put(0, b, Math.abs(b) === 3 ? 0 : 2); put(-1, -3, 1); put(-1, 3, 1); } },
   shovel: { haft: 9, head: (put) => { for (let a = 0; a <= 3; a++) for (let b = -1; b <= 1; b++) if (!(a === 3 && b !== 0)) put(a, b, a === 0 ? 3 : b === -1 ? 1 : 2); } },
   hammer: { haft: 6, head: (put) => { for (let a = 0; a <= 1; a++) for (let b = -2; b <= 1; b++) put(a, b, a === 0 ? 1 : 3); } },
+  // a raft oar: long haft, flat blade
+  oar: { haft: 12, head: (put) => { for (let a = 0; a <= 4; a++) for (let b = -1; b <= 1; b++) if (!(a === 4 && b !== 0)) put(a, b, a === 0 ? 3 : b === -1 ? 1 : 2); } },
   sickle: { haft: 4, head: (put) => { [[0, 1], [1, 2], [2, 2], [3, 1], [4, 0], [4, -1]].forEach(([a, b], i) => put(a, b, i < 2 ? 2 : 1)); } },
 };
 

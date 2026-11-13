@@ -80,6 +80,17 @@ const load = (fr) => {
   const cx = (a.x + b.x) >> 1, y0 = Math.min(a.y, b.y) - (fr.f === 3 ? 6 : 4);
   return sack(cx - 3, y0, cx + 3, y0 + 4, { hi: '#86b36c', mid: '#67985a', lo: '#4a7a4b', line: '#263a33' });
 };
+// small props, drawn at the hands or above the head
+const pix = (rows, x0, y0, pal) => { const out = []; rows.forEach((r, y) => [...r].forEach((ch, x) => { if (pal[ch]) out.push([x0 + x, y0 + y, pal[ch][0], pal[ch][1] ?? false]); })); return out; };
+const between = (fr) => { const a = fr.hands?.A, b = fr.hands?.B ?? a; return a ? [(a.x + b.x) >> 1, Math.min(a.y, b.y)] : null; };
+// a berry cluster (eat): red, lit top-left, dark outline
+const berry = (x, y) => pix(['.oo.', 'ohro', 'orro', '.oo.'], x - 2, y - 2, { o: ['#3b2d26'], h: ['#f05fb3'], r: ['#d0414f'] });
+// an open notebook (write): pale pages, ruled lines, dark cover edge
+const notebook = (x, y) => pix(['ppp.ppp', 'lll.lll', 'ppp.ppp', 'lll.lll', 'kkkkkkk'], x - 3, y - 3, { k: ['#5a4536'], p: ['#f5ecc9'], l: ['#cdb98a'], '.': ['#7a5f49'] });
+// a spark burst (workbench, on the contact frame): warm light, glows
+const sparks = (x, y) => pix(['y.y', '.w.', 'y.y'], x - 1, y - 1, { y: ['#ffd37a', true], w: ['#ffd37a', true] });
+// the "!" of a discovery: warm light, glows
+const bang = (fr) => pix(['ww', 'ww', 'ww', '..', 'ww'], fr.cx + 8, fr.headTop - 7, { w: ['#ffd37a', true] });
 const range = (n, fn) => Array.from({ length: n }, (_, f) => fn(f));
 
 export const CLIPS = {
@@ -236,4 +247,48 @@ Object.assign(CLIPS, {
     { front: both2([12, 38], [19, 38]) }, { front: both2([12, 33], [19, 33]) }, { front: { ...both2([12, 28], [19, 28]), armsFront: true } },
     { front: { ...both2([12, 24], [19, 24]), armsFront: true } }, { front: { ...both2([11, 25], [20, 25]), armsFront: true } }, { front: both2([12, 36], [19, 36]) },
   ] }), overlays: { 'held.load': (fr) => (fr.f <= 3 ? load(fr) : []) } },
+});
+
+// ── group 4: doing and reactions ─────────────────────────────────────────────
+Object.assign(CLIPS, {
+  // busy at the bench: hands working in turn at waist height, sparks on the contact frame (S only)
+  workbench: { dirs: ['S'], fps: 5, loop: true, contact: [3],
+    // (hands at bench height, in front of him — the bench sprite covers his legs)
+    poses: [[[12, 40], [19, 38]], [[13, 38], [18, 40]], [[12, 40], [19, 38]], [[14, 41], [17, 41]], [[13, 38], [18, 40]], [[12, 39], [19, 39]]].map(([A, B]) => ({ at: { A, B } })),
+    overlays: { 'status.sparks': (fr) => (fr.f === 3 ? sparks(16, 43) : []) } },
+  // a berry to the screen ("eats" with his face): reach, raise, at the screen (contact f2), lower — happy
+  eat: { ...action({ fps: 5, loop: false, contact: [2], face: [null, null, 'happy', 'happy'], keys: [
+    { side: { at: [21, 37] }, front: { A: [10, 37] } },
+    { side: { at: [21, 30] }, front: { A: [11, 30], armsFront: true } },
+    { side: { at: [22, 22], armsFront: true }, front: { A: [13, 25], armsFront: true } },
+    { side: { at: [21, 34] }, front: { A: [10, 35] } },
+  ] }), overlays: { 'front.berry': (fr) => { const h = fr.hands?.A; if (!h || fr.f > 2 || fr.d === 'N') return []; return berry(h.x, h.y - (fr.f === 2 ? 0 : 1)); } } },
+  // thinking (life-loop decide step): thinking face, a hand at the chin, dots building above the head
+  think: { ...action({ fps: 3, loop: true, face: Array(4).fill('thinking'), keys: [0, 1, 2, 3].map((i) => ({
+    side: { at: [20, 30] }, front: { A: [12, 30] }, body: { dots: [1, 2, 3, 3][i] } })) }) },
+  // writing in a notebook held at the chest; the pen hand moves along the line (S only)
+  write: { dirs: ['S'], fps: 3, loop: true,
+    poses: [[[13, 37], [19, 36]], [[14, 36], [19, 36]], [[15, 37], [19, 36]], [[14, 36], [19, 36]]].map(([A, B]) => ({ at: { A, B } })),
+    overlays: { 'held.notebook': (fr) => notebook(17, 39) } },
+  // rowing the raft: sitting low (the raft covers his legs), a stroke with the oar, splash on f3
+  row: { ...action({ fps: 5, loop: true, contact: [3], held: 'oar', keys: [
+    { side: { at: [22, 37], ang: 315 }, front: { A: [9, 37], B: [12, 37], ang: 225 } },
+    { side: { at: [21, 38], ang: 270 }, front: { A: [9, 38], B: [12, 38], ang: 270 } },
+    { side: { at: [18, 38], ang: 270 }, front: { A: [8, 38], B: [11, 38], ang: 270 } },
+    { side: { at: [15, 38], ang: 225 }, front: { A: [7, 37], B: [10, 37], ang: 315 } },
+    { side: { at: [15, 34], ang: 180 }, front: { A: [7, 34], B: [10, 34], ang: 315, behind: true } },
+    { side: { at: [19, 34], ang: 0 }, front: { A: [8, 35], B: [11, 35], ang: 225 } },
+  ].map((k) => ({ ...k, body: { bob: 3 } })) }) },
+  // sulking: head hung, shoulders down, hands low, slow breath — sad face (S only)
+  sulk: { dirs: ['S'], fps: 3, loop: true, face: Array(4).fill('sad'),
+    poses: [0, 0, 1, 1].map((bob) => ({ bob, headDy: 2, ...both(0, -1) })) },
+  // celebrate (a first, a level-up): crouch, hop up with both arms, land — happy
+  celebrate: { dirs: ALL, fps: 8, loop: false, airborne: true, face: Array(6).fill('happy'),
+    poses: (d) => { const side = d === 'E' || d === 'W'; const up = side ? { arm: { dx: 2, dy: 12 }, armsFront: true } : { ...both(6, 10), armsFront: true };
+      return [{ bob: 2 }, { ...up, hop: 2 }, { ...up, hop: 4 }, { ...up, hop: 2 }, { bob: 2 }, {}]; } },
+  // discover (a first sighting): leans in, head tilts, surprised face, a "!" pops above him
+  discover: { dirs: ALL, fps: 6, loop: false, face: [null, 'surprised', 'surprised', 'surprised', 'surprised', null],
+    poses: (d) => { const side = d === 'E' || d === 'W';
+      return [{}, side ? { lean: 1 } : { bob: 1 }, side ? { lean: 1, headDx: 1 } : { bob: 1, headDx: 1 }, side ? { lean: 1, headDx: 1 } : { bob: 1, headDx: 1 }, side ? { lean: 1 } : { bob: 1 }, {}]; },
+    overlays: { 'status.bang': (fr) => (fr.f >= 1 && fr.f <= 4 ? bang(fr) : []) } },
 });
