@@ -164,7 +164,7 @@ export function checkPack(dir, { only } = {}) {
         summary.push(`${clip}: emissive ${n} px`);
       }
     } else Wn(`no ${clip}_emissive.png (strip, antenna bobble and charge LED glow from it)`);
-    const overlayRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(held|back|status|front)\\.[a-z0-9_]+(_emissive)?\\.png$`);
+    const overlayRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(tint|held|back|status|front)\\.[a-z0-9_]+(_emissive)?\\.png$`);
     for (const f of files.filter((x) => overlayRe.test(x))) {
       const o = readPng(path.join(dir, f));
       if (o.width !== img.width || o.height !== img.height) E(`overlay ${f} is ${o.width}×${o.height}, expected ${img.width}×${img.height}`);

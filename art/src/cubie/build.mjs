@@ -16,6 +16,7 @@ import { paint, sheet } from '../../../.claude/skills/cubie-pixel-art/scripts/pi
 import { blank, encodePng, writePng } from '../../../.claude/skills/cubie-pixel-art/scripts/png.mjs';
 import { APPROVED_FACES, FACE_NAMES, PINK, TEAL, W, H, draw } from './model.mjs';
 import { CLIPS } from './clips.mjs';
+import { WEAR } from './wear.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../../..');
@@ -42,10 +43,11 @@ const only = args.includes('--only') ? args[args.indexOf('--only') + 1].split(',
 fs.mkdirSync(out, { recursive: true });
 for (const [clip, c] of Object.entries(CLIPS)) {
   if (only && !only.includes(clip)) continue;
+  const overlays = { ...(c.overlays ?? {}), ...(c.wear === false ? {} : WEAR) };
   const dirs = c.dirs; const posesFor = (d) => (typeof c.poses === 'function' ? c.poses(d) : c.poses);
   const n = posesFor(dirs[0]).length;
   const base = blank(W * n, H * dirs.length); const em = blank(W * n, H * dirs.length);
-  const ovs = Object.fromEntries(Object.keys(c.overlays ?? {}).map((k) => [k, { base: blank(W * n, H * dirs.length), em: blank(W * n, H * dirs.length) }]));
+  const ovs = Object.fromEntries(Object.keys(overlays).map((k) => [k, { base: blank(W * n, H * dirs.length), em: blank(W * n, H * dirs.length) }]));
   const anchors = Object.fromEntries(dirs.map((d) => [d, []]));
   const handAnchors = Object.fromEntries(dirs.map((d) => [d, []]));
   const frontArms = {};
@@ -65,10 +67,14 @@ for (const [clip, c] of Object.entries(CLIPS)) {
     anchors[d].push(fr.screen ? (fr.screen.kind && fr.screen.kind !== d ? [fr.screen.x, fr.screen.y, fr.screen.kind] : [fr.screen.x, fr.screen.y]) : null);
     // hand positions (A, and B where the facing shows it) for the renderer to hang things on
     handAnchors[d].push(Object.fromEntries(Object.entries(fr.hands ?? {}).map(([k, v]) => [k, [v.x, v.y]])));
-    for (const [k, fn] of Object.entries(c.overlays ?? {})) {
-      let px = fn({ ...fr, d, f, n, pose });
+    const drawn = Object.fromEntries(Object.entries(overlays).map(([k, fn]) => [k, fn({ ...fr, d, f, n, pose })]));
+    // a status layer (wet) sits above held tools in the renderer's order, so it leaves out where one is
+    const heldAt = new Set(Object.entries(drawn).filter(([k]) => k.startsWith('held.')).flatMap(([, px]) => px.map(([x, y]) => `${x},${y}`)));
+    for (const k of Object.keys(overlays)) {
+      let px = drawn[k];
+      if (k.startsWith('status.')) px = px.filter(([x, y]) => !heldAt.has(`${x},${y}`));
       // back overlays sit behind him from the front and sides, in front of him from behind
-      if (k.startsWith('back.') && d !== 'N') px = px.filter(([x, y]) => !fr.rows[y]?.[x]);
+      if (k.startsWith('back.') && d !== 'N') px = px.filter(([x, y, , , over]) => over || !fr.rows[y]?.[x]); // `over`: a strap across his front
       paint(ovs[k].base, grid(px), f * W, r * H);
       paint(ovs[k].em, grid(px.filter((p) => p[3] !== false)), f * W, r * H);
     }
@@ -82,7 +88,7 @@ for (const [clip, c] of Object.entries(CLIPS)) {
   for (const [k, o] of Object.entries(ovs)) { writePng(path.join(out, `${clip}.${k}.png`), o.base); if (o.em.data.some((v, i) => i % 4 === 3 && v)) writePng(path.join(out, `${clip}.${k}_emissive.png`), o.em); }
   writePng(path.join(out, `${clip}.png`), base);
   writePng(path.join(out, `${clip}_emissive.png`), em);
-  const json = { clip, frame: { w: W, h: H }, count: n, fps: c.fps, loop: c.loop, dirs, ...(c.contact ? { contact: c.contact } : {}), ...(c.face ? { face: c.face } : {}), ...(c.airborne ? { airborne: true } : {}), anchors: { face: anchors, hands: handAnchors } };
+  const json = { clip, frame: { w: W, h: H }, count: n, fps: c.fps, loop: c.loop, dirs, ...(c.contact ? { contact: c.contact } : {}), ...(c.face ? { face: c.face } : {}), ...(c.airborne ? { airborne: true } : {}), worn: [...(c.worn ?? []), ...(c.wear === false ? [] : Object.keys(WEAR))], anchors: { face: anchors, hands: handAnchors } };
   fs.writeFileSync(path.join(out, `${clip}.json`), `${JSON.stringify(json, null, 1)}\n`);
   console.log(`${clip}: ${n} frames × ${dirs.join(',')} @ ${c.fps} fps`);
 }

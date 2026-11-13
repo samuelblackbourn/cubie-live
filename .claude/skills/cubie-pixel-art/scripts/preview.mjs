@@ -18,7 +18,7 @@ import { blank, readPng } from './png.mjs';
 import { STRIP_KEY, crop, hexRgb, meadow, nightTint, over } from './lib.mjs';
 
 /** One finished frame (body + face + strip tint + emissive) and its glow mask. */
-export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9', held = null } = {}) {
+export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9', held = null, show = [] } = {}) {
   const j = JSON.parse(fs.readFileSync(path.join(dir, `${clip}.json`), 'utf8'));
   const r = (j.dirs ?? ['S', 'W', 'E', 'N']).indexOf(d); const { w, h } = j.frame;
   const body = crop(readPng(path.join(dir, `${clip}.png`)), f * w, r * h, w, h);
@@ -40,13 +40,15 @@ export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9', h
       if (fs.existsSync(ef)) over(glow, crop(readPng(ef), k * cw, 0, cw, ch), anchor[0], anchor[1]);
     }
   }
-  // overlays (<clip>.held|back|status|front.<name>.png): occlusion is baked in, so they go
+  // overlays (<clip>.tint|back|held|status|front.<name>.png; tint recolours the body itself, under the rest): occlusion is baked in, so they go
   // on top, in that order; each covers the glow beneath it and brings its own glow
   over(body, glow, 0, 0);
-  const ovRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(back|held|status|front)\\.[a-z0-9_]+\\.png$`);
-  const order = { back: 0, held: 1, status: 2, front: 3 };
+  const ovRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(tint|back|held|status|front)\\.[a-z0-9_]+\\.png$`);
+  const order = { tint: -1, back: 0, held: 1, status: 2, front: 3 };
   // a clip may offer several held tools (the renderer shows the one he holds): show `held`, else the first
-  const files = fs.readdirSync(dir).filter((x) => ovRe.test(x)).sort();
+  // overlays the clip lists as `worn` (packs, wet, a tool carried on idle/walk) show only when asked for in `show`
+  const key = (x) => x.slice(clip.length + 1, -4); const worn = j.worn ?? [];
+  const files = fs.readdirSync(dir).filter((x) => ovRe.test(x) && !x.endsWith('_emissive.png') && (!worn.includes(key(x)) || show.includes(key(x)))).sort();
   const helds = files.filter((x) => x.split('.').at(-3) === 'held'); const pick = held ? helds.find((x) => x.endsWith(`.held.${held}.png`)) : helds[0];
   for (const f2 of files.filter((x) => x.split('.').at(-3) !== 'held' || x === pick).sort((p, q) => order[p.split('.').at(-3)] - order[q.split('.').at(-3)])) {
     const o = crop(readPng(path.join(dir, f2)), f * w, r * h, w, h);

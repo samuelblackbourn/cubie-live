@@ -348,3 +348,8 @@ Object.assign(CLIPS, {
     face: ['sad', 'roll_ul', 'roll_u', 'roll_ur', 'unimpressed', 'unimpressed'],
     poses: [{ headDy: 1 }, { headDx: -1 }, {}, { headDx: 1 }, { bob: 1, headDy: 1, ...both(0, -1) }, { headDy: 1, ...both(0, -1) }] },
 });
+
+// ── group 5: tools carried while idle and walking (held.<tool> on the art-01 poses) ──
+// he holds it upright at his side by the haft, head at shoulder height, blade outwards
+const CARRY = { S: [90, [0, 2], true], N: [90, [0, 2], true], E: [90, [0, 2]], W: [90, [0, 2]] };
+for (const k of ['idle', 'walk']) CLIPS[k].worn = ['held.axe', 'held.pick', 'held.shovel'], CLIPS[k].overlays = Object.fromEntries(['axe', 'pick', 'shovel'].map((t) => [`held.${t}`, (fr) => { const [a, nudge, flip] = CARRY[fr.d]; return tool(fr, t, a, { nudge, flip }); }]));
