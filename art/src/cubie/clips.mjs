@@ -70,9 +70,9 @@ const action = ({ dirs = ALL, fps, loop, contact, held, keys, face }) => {
     const at = side ? { A: flip ? mx(K.at) : K.at } : { A: flip ? mx(K.A) : K.A, ...(K.B ? { B: flip ? mx(K.B) : K.B } : {}) };
     return { at, ...(K.armsFront ? { armsFront: true } : {}), ...(k.body ?? {}), ...(K.body ?? {}) };
   });
-  const angleOf = (fr) => { const k = keys[fr.f]; const side = fr.d === 'E' || fr.d === 'W'; const K = side ? k.side : k.front; return { ang: K.ang, behind: K.behind }; };
+  const angleOf = (fr) => { const k = keys[fr.f]; const side = fr.d === 'E' || fr.d === 'W'; const K = side ? k.side : k.front; return { ang: K.ang, behind: K.behind, over: K.over }; };
   return { dirs, fps, loop, contact, face, poses: posesFor,
-    ...(held ? { overlays: Object.fromEntries([held].flat().map((h) => [`held.${h}`, (fr) => { const { ang, behind } = angleOf(fr); if (ang === undefined || ang === null) return []; return tool(fr, h, ang, { behind }); }])) } : {}) };
+    ...(held ? { overlays: Object.fromEntries([held].flat().map((h) => [`held.${h}`, (fr) => { const { ang, behind, over } = angleOf(fr); if (ang === undefined || ang === null) return []; return tool(fr, h, ang, { behind, over }); }])) } : {}) };
 };
 // the load he tips into the converter: a green bundle of cuttings between his hands
 const load = (fr) => {
@@ -180,10 +180,10 @@ export const CLIPS = {
 };
 
 // ── group 3: working ──────────────────────────────────────────────────────────
-const HEAVY = [ // ready, wind up over the shoulder, top (tool behind his head), coming down, contact (f4), recover
+const HEAVY = [ // ready, wind up over the shoulder, top (raised over his head, drawn on top of it), coming down, contact (f4), recover
   { side: { at: [21, 34], ang: 45 }, front: { A: [14, 36], B: [17, 36], ang: 90 } },
-  { side: { at: [15, 25], ang: 135, armsFront: true }, front: { A: [9, 29], B: [12, 29], ang: 90, behind: true } },
-  { side: { at: [13, 21], ang: 180, armsFront: true, behind: true }, front: { A: [8, 26], B: [11, 26], ang: 90, armsFront: true, behind: true } },
+  { side: { at: [15, 25], ang: 135, armsFront: true }, front: { A: [9, 29], B: [12, 29], ang: 90, over: true } },
+  { side: { at: [13, 21], ang: 180, armsFront: true, over: true }, front: { A: [8, 26], B: [11, 26], ang: 90, armsFront: true, over: true } },
   { side: { at: [20, 26], ang: 45, armsFront: true }, front: { A: [13, 31], B: [16, 31], ang: 90 } },
   { side: { at: [23, 37], ang: 315, body: { lean: 1 } }, front: { A: [14, 38], B: [17, 38], ang: 270 } },
   { side: { at: [21, 35], ang: 0 }, front: { A: [14, 36], B: [17, 36], ang: 90 } },

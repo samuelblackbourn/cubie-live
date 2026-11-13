@@ -62,8 +62,7 @@ export function cargoFrame(fr) {
     if (fr.d === 'N') sack(xl + 1, t.y0 - 1, xr - 1, t.y1 - 2); // the load, strapped between the rails
     for (let y = top; y <= bot; y++) { L.set(xl, y, 'wood', 2); L.set(xl + 1, y, 'wood', 3); L.set(xr - 1, y, 'wood', 2); L.set(xr, y, 'wood', 3); }
     for (const y of [top + 1, t.y0 + 6]) for (let x = xl + 2; x <= xr - 2; x++) L.set(x, y, 'wood', 1);
-    let res = px(L);
-    if (fr.d === 'N') res = res.filter(([x, y]) => y >= t.y0 || !fr.rows[y]?.[x]); // from behind, the posts pass behind his head
+    const res = px(L); // from behind the whole frame, posts included, sits over his head
     if (fr.d === 'S') res.push(...straps(t));
     if (fr.d === 'N') for (const y of [t.y0 + 1, t.y1 - 4]) for (let x = xl + 2; x <= xr - 2; x++) res.push([x, y, '#4d5361', false]); // straps
     return res;

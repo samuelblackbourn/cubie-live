@@ -2,7 +2,7 @@
 // anchor along one of eight directions, as `held.<tool>` overlays. Wood haft,
 // steel head, 1-px outline in each material's darkest step (pix.mjs Layer).
 // `behind` (or any N frame) hides the tool wherever his body is, so it reads as
-// held behind him.
+// held behind him; `over` (a tool raised over his head) draws on top in every facing.
 import { Layer } from '../../../.claude/skills/cubie-pixel-art/scripts/pix.mjs';
 
 const RAMPS = {
@@ -33,7 +33,7 @@ const SHAPES = {
  * views, so the angle and the head's sides are both mirrored there (mirroring only the
  * angle left the axe blade facing backwards). Returns [[x, y, colour, false]…].
  */
-export function tool(fr, kind, angle, { behind = false, hand = 'A', flip = false, nudge = [0, 0] } = {}) {
+export function tool(fr, kind, angle, { behind = false, over = false, hand = 'A', flip = false, nudge = [0, 0] } = {}) {
   const h0 = fr.hands?.[hand]; if (!h0) return []; const h = { x: h0.x + nudge[0], y: h0.y + nudge[1] };
   // flip: the other hand's tool in a mirrored pair (the second oar)
   const mirror = (fr.d === 'W' || fr.d === 'N') !== flip;
@@ -46,6 +46,6 @@ export function tool(fr, kind, angle, { behind = false, hand = 'A', flip = false
   const diag = ux !== 0 && uy !== 0;
   S.head((along, across, tone) => { const x = tx + ux * along + vx * across, y = ty + uy * along + vy * across; L.set(x, y, 'steel', tone); if (diag && !L.get(x - ux, y)) L.set(x - ux, y, 'steel', Math.min(tone + 1, 4)); });
   const rows = L.render(); const out = [];
-  rows.forEach((row, y) => row.forEach((c, x) => { if (c && !((behind || fr.d === 'N') && fr.rows[y]?.[x])) out.push([x, y, c, false]); }));
+  rows.forEach((row, y) => row.forEach((c, x) => { if (c && !((behind || (fr.d === 'N' && !over)) && fr.rows[y]?.[x])) out.push([x, y, c, false]); }));
   return out;
 }
