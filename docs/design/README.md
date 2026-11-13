@@ -13,6 +13,7 @@ the vault wins; sync by re-copying, never by editing here.
 | `03-art-system.md` | `Virtual-Office/Design-Cubie-Art-System.md` | copied 2026-11-13 (art-01), v0.1.1 — the art design system; trees ruled 96 px |
 | `04-items.md` | `Virtual-Office/Design-Cubie-Items.md` | copied 2026-11-13 (art-01) — resources, tools, companions, weather, substances by biome |
 | `06-animations.md` | `Virtual-Office/Design-Cubie-Animations.md` | copied 2026-11-13 (art-01) — Cubie's clip list, faces, frame budgets |
+| `08-gear.md` | `Virtual-Office/Design-Cubie-Gear.md` | copied 2026-11-13 — proposed: gear slots, abilities, the catalogue (packs, leg kits, outfits, armour, gadgets), loadouts, art and sim consequences |
 | `../sessions/P0.md` | `Virtual-Office/Cubie-Live/Session-P0-Brief.md` | copied 2026-10-29 |
 
 Copying is a one-liner from a Claude Code session that has the vault MCP: read the
