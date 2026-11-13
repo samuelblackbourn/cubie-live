@@ -7,19 +7,21 @@
  *
  *   node look.mjs --out look/all.png [--scale 4] [--night] [--cols 8] files…
  *
- * A clip strip (with <clip>.json beside it) is shown as its first frame per
- * direction; use preview.mjs to see it move. Files are drawn in the order given,
+ * A clip strip (with <clip>.json beside it) is shown composited like the
+ * renderer will (face overlay, tinted strip, emissive) at --frame n (default 0),
+ * one cell per direction; use preview.mjs to see it move. Files are drawn in the order given,
  * left to right, and listed on stdout with their cell numbers.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { blank, readPng, writePng } from './png.mjs';
 import { crop, meadow, nightTint, over } from './lib.mjs';
+import { composite } from './preview.mjs';
 
 const a = process.argv.slice(2);
 const opt = (f, d) => (a.includes(f) ? a[a.indexOf(f) + 1] : d);
 const out = opt('--out', null); const scale = Number(opt('--scale', 4)); const cols = Number(opt('--cols', 8)); const night = a.includes('--night');
-const files = a.filter((x, i) => !x.startsWith('--') && !['--out', '--scale', '--cols'].includes(a[i - 1]));
+const files = a.filter((x, i) => !x.startsWith('--') && !['--out', '--scale', '--cols', '--frame'].includes(a[i - 1]));
 if (!out || !files.length) { console.error('usage: node look.mjs --out file.png [--scale 4] [--night] [--cols 8] files…'); process.exit(2); }
 
 const sprites = [];
@@ -28,7 +30,8 @@ for (const f of files) {
   const jf = f.replace(/(_emissive)?\.png$/, '.json');
   if (fs.existsSync(jf)) {
     const j = JSON.parse(fs.readFileSync(jf, 'utf8'));
-    (j.dirs ?? ['S', 'W', 'E', 'N']).forEach((d, r) => sprites.push({ label: `${path.basename(f, '.png')} ${d}`, img: crop(img, 0, r * j.frame.h, j.frame.w, j.frame.h), em: e && crop(e, 0, r * j.frame.h, j.frame.w, j.frame.h) }));
+    const frame = Number(opt('--frame', 0));
+    (j.dirs ?? ['S', 'W', 'E', 'N']).forEach((d) => { const { body, glow } = composite(path.dirname(f), path.basename(jf, '.json'), d, frame); sprites.push({ label: `${path.basename(f, '.png')} ${d}`, img: body, em: glow }); });
   } else sprites.push({ label: path.basename(f, '.png'), img, em: e });
 }
 const PAD = 8; const cw = Math.max(...sprites.map((s) => s.img.width)) + PAD * 2; const ch = Math.max(...sprites.map((s) => s.img.height)) + PAD * 2;

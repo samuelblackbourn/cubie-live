@@ -29,9 +29,15 @@ export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9' } 
   for (let i = 0; i < w * h; i++) { const o = i * 4; if (body.data[o + 3] && body.data[o] === kr && body.data[o + 1] === kg && body.data[o + 2] === kb) { body.data.set(tint, o); glow.data.set([...tint, 255], o); } }
   const anchor = j.anchors?.face?.[d]?.[f];
   if (anchor && fs.existsSync(path.join(dir, 'faces.json'))) {
-    const fj = JSON.parse(fs.readFileSync(path.join(dir, 'faces.json'), 'utf8')); const k = fj.names.indexOf(face);
-    if (k >= 0) { const fc = crop(readPng(path.join(dir, 'faces.png')), k * fj.size[0], 0, fj.size[0], fj.size[1]); over(body, fc, anchor[0], anchor[1]);
-      for (let y = 0; y < fc.height; y++) for (let x = 0; x < fc.width; x++) { const o = (y * fc.width + x) * 4; const [R, G, B] = fc.data.subarray(o, o + 3); if (fc.data[o + 3] && Math.max(R, G, B) > 120 && Math.max(R, G, B) - Math.min(R, G, B) > 60) glow.data.set(fc.data.subarray(o, o + 4), ((anchor[1] + y) * w + anchor[0] + x) * 4); } }
+    const fj = JSON.parse(fs.readFileSync(path.join(dir, 'faces.json'), 'utf8'));
+    const cell = fj.cells?.[d] ?? (d === 'S' || !fj.cells ? { file: 'faces.png', size: fj.size } : null);
+    const k = fj.names.indexOf(j.face?.[f] ?? face);
+    if (cell && k >= 0) {
+      const [cw, ch] = cell.size;
+      over(body, crop(readPng(path.join(dir, cell.file)), k * cw, 0, cw, ch), anchor[0], anchor[1]);
+      const ef = path.join(dir, cell.file.replace(/\.png$/, '_emissive.png'));
+      if (fs.existsSync(ef)) over(glow, crop(readPng(ef), k * cw, 0, cw, ch), anchor[0], anchor[1]);
+    }
   }
   over(body, glow, 0, 0);
   return { body, glow, j };
