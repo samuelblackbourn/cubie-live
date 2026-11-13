@@ -13,7 +13,10 @@
  *                         live on the face overlay, so here: strip, antenna, charge LED)
  *   <clip>.<overlay>.png  optional overlays (held tool, back pack); same size and frames
  * and once for the folder:
- *   faces.png + faces.json  { size: [w, h], names: [...] } — one face per cell, left→right
+ *   faces.json            { size: [w, h], names: [...], cells?: { S: {file, size}, E: …, W: … } }
+ *                         one sheet per direction that shows a face, one face per cell
+ *                         left→right, each with a <sheet>_emissive.png (eyes, mouth)
+ *   <clip>.json may also carry face: [null | name, …] — a face forced on that frame (the blink)
  *
  * Errors (would break the renderer): bad JSON, wrong sheet size, empty frames,
  * half-transparent pixels, off-palette colours, emissive pixels with no body
@@ -51,21 +54,29 @@ export function checkPack(dir, { only } = {}) {
   const clips = files.filter((f) => f.endsWith('.json') && f !== 'faces.json').map((f) => f.slice(0, -5)).filter((c) => !only || c === only);
   if (!clips.length) errors.push(`no <clip>.json in ${dir}`);
 
-  // faces
-  let faceSize = null;
+  // faces: one sheet per direction that shows a face (faces.json → cells), each with its _emissive
+  let faces = null;
   if (files.includes('faces.json')) {
     try {
-      const fj = JSON.parse(fs.readFileSync(path.join(dir, 'faces.json'), 'utf8'));
-      faceSize = fj.size;
-      if (!files.includes('faces.png')) errors.push('faces.json without faces.png');
-      else {
-        const fp = readPng(path.join(dir, 'faces.png'));
-        if (fp.width !== fj.size[0] * fj.names.length || fp.height !== fj.size[1]) errors.push(`faces.png is ${fp.width}×${fp.height}, expected ${fj.size[0] * fj.names.length}×${fj.size[1]} (${fj.names.length} faces of ${fj.size.join('×')})`);
-        fj.names.forEach((n, i) => { if (!inspect(fp, i * fj.size[0], 0, fj.size[0], fj.size[1]).box) errors.push(`face ${n} is empty`); });
-        summary.push(`faces: ${fj.names.join(', ')} at ${fj.size.join('×')}`);
+      faces = JSON.parse(fs.readFileSync(path.join(dir, 'faces.json'), 'utf8'));
+      const cells = faces.cells ?? { S: { file: 'faces.png', size: faces.size } };
+      for (const [d, c] of Object.entries(cells)) {
+        if (!files.includes(c.file)) { errors.push(`faces.json names ${c.file}, which is missing`); continue; }
+        const fp = readPng(path.join(dir, c.file));
+        if (fp.width !== c.size[0] * faces.names.length || fp.height !== c.size[1]) { errors.push(`${c.file} is ${fp.width}×${fp.height}, expected ${c.size[0] * faces.names.length}×${c.size[1]} (${faces.names.length} faces of ${c.size.join('×')})`); continue; }
+        faces.names.forEach((n, i) => { if (!inspect(fp, i * c.size[0], 0, c.size[0], c.size[1]).box) errors.push(`${c.file}: face ${n} is empty`); });
+        const ef = c.file.replace(/\.png$/, '_emissive.png');
+        if (files.includes(ef)) {
+          const e = readPng(path.join(dir, ef)); let floating = 0;
+          if (e.width !== fp.width || e.height !== fp.height) errors.push(`${ef} is ${e.width}×${e.height}, expected ${fp.width}×${fp.height}`);
+          else eachPixel(e, (x, y) => { if (!fp.data[(y * fp.width + x) * 4 + 3]) floating++; });
+          if (floating) errors.push(`${ef}: ${floating} glowing pixels with no face under them`);
+        } else warnings.push(`no ${ef} (eyes and mouth glow from it)`);
       }
+      summary.push(`faces: ${faces.names.join(', ')} — ${Object.entries(cells).map(([d, c]) => `${d} ${c.size.join('×')}`).join(', ')}${faces.placeholder?.length ? `; placeholder: ${faces.placeholder.join(', ')}` : ''}`);
     } catch (e) { errors.push(`faces.json: ${e.message}`); }
   }
+  const faceSize = (d) => faces?.cells?.[d]?.size ?? faces?.size ?? [18, 8];
 
   for (const clip of clips) {
     const E = (m) => errors.push(`${clip}: ${m}`); const Wn = (m) => warnings.push(`${clip}: ${m}`);
@@ -100,7 +111,11 @@ export function checkPack(dir, { only } = {}) {
 
     // per frame
     const faceAnch = j.anchors?.face;
-    if (faceSize && !faceAnch) E('faces.json exists but the clip has no anchors.face');
+    if (faces && !faceAnch) E('faces.json exists but the clip has no anchors.face');
+    if (j.face !== undefined) {
+      if (!Array.isArray(j.face) || j.face.length !== j.count) E(`face must be a list of ${j.count} entries (null or a face name)`);
+      else for (const n of j.face) if (n !== null && faces && !faces.names.includes(n)) E(`face override "${n}" is not in faces.json`);
+    }
     dirs.forEach((d, row) => {
       const heights = [];
       for (let f = 0; f < j.count; f++) {
@@ -113,7 +128,7 @@ export function checkPack(dir, { only } = {}) {
         if (faceAnch && a !== null && a !== undefined) {
           const p = a[f];
           if (!Array.isArray(p)) { E(`${where}: no face anchor`); continue; }
-          const [fx, fy] = p; const [w, h] = faceSize ?? [18, 8];
+          const [fx, fy] = p; const [w, h] = faceSize(d);
           if (fx < 0 || fy < 0 || fx + w > FRAME.w || fy + h > FRAME.h) E(`${where}: face at ${fx},${fy} (${w}×${h}) leaves the frame`);
           else {
             const box = crop(img, f * FRAME.w + fx, row * FRAME.h + fy, w, h); let holes = 0;

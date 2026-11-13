@@ -32,6 +32,14 @@ const deferred = new Set();
 try { for (const m of manifests(repoRoot(src) ?? repoRoot())) for (const r of m.rows) if (r.deferred) deferred.add(String(r.id)); } catch { /* no manifests yet */ }
 
 const pieces = []; const anims = [];
+const facesCache = new Map();
+/** files a faces.json in folder d consumes (cut into per-face frames, not packed whole) */
+function facesUsed(d) {
+  if (facesCache.has(d)) return facesCache.get(d);
+  const set = new Set(); const fjf = path.join(d, 'faces.json');
+  if (fs.existsSync(fjf)) { const fj = JSON.parse(fs.readFileSync(fjf, 'utf8')); for (const c of Object.values(fj.cells ?? { S: { file: 'faces.png' } })) { set.add(c.file); set.add(c.file.replace(/\.png$/, '_emissive.png')); } }
+  facesCache.set(d, set); return set;
+}
 const walk = (d) => {
   for (const e of fs.readdirSync(d, { withFileTypes: true }).sort((p, q) => p.name.localeCompare(q.name))) {
     const p = path.join(d, e.name);
@@ -43,7 +51,7 @@ const walk = (d) => {
     if (deferred.has(clipName) || deferred.has(base)) continue;
     const jf = path.join(d, `${clipName}.json`);
     const img = readPng(p);
-    if (fs.existsSync(jf) && clipName !== 'faces') {
+    if (fs.existsSync(jf) && !facesUsed(d).has(e.name) && clipName !== 'faces') {
       const j = JSON.parse(fs.readFileSync(jf, 'utf8')); const dirs = j.dirs ?? ['S', 'W', 'E', 'N'];
       dirs.forEach((dir, r) => {
         const frames = [];
@@ -52,11 +60,15 @@ const walk = (d) => {
           blit(img, f * j.frame.w, r * j.frame.h, j.frame.w, j.frame.h, cell, 0, 0);
           pieces.push({ name: fr, img: cell }); frames.push({ key: name, frame: fr });
         }
-        if (base === clipName) anims.push({ key: `${folder.replace(/\//g, '.')}${clipName}.${dir}`, frames, frameRate: j.fps, repeat: j.loop ? -1 : 0, ...(j.contact ? { contact: j.contact } : {}) });
+        if (base === clipName) anims.push({ key: `${folder.replace(/\//g, '.')}${clipName}.${dir}`, frames, frameRate: j.fps, repeat: j.loop ? -1 : 0, ...(j.contact ? { contact: j.contact } : {}), ...(j.face ? { face: j.face } : {}), ...(j.anchors?.face ? { faceAnchor: j.anchors.face[dir] } : {}) });
       });
-    } else if (fs.existsSync(path.join(d, 'faces.json')) && base === 'faces') {
+    } else if (facesUsed(d).has(e.name)) {
       const fj = JSON.parse(fs.readFileSync(path.join(d, 'faces.json'), 'utf8'));
-      fj.names.forEach((n, i) => { const cell = blank(fj.size[0], fj.size[1]); blit(img, i * fj.size[0], 0, fj.size[0], fj.size[1], cell, 0, 0); pieces.push({ name: `${folder}faces/${n}`, img: cell }); });
+      const cells = fj.cells ?? { S: { file: 'faces.png', size: fj.size } };
+      for (const [dir, c] of Object.entries(cells)) for (const [file, tag] of [[c.file, ''], [c.file.replace(/\.png$/, '_emissive.png'), '_emissive']]) {
+        if (file !== e.name) continue;
+        fj.names.forEach((n, i) => { const cell = blank(c.size[0], c.size[1]); blit(img, i * c.size[0], 0, c.size[0], c.size[1], cell, 0, 0); pieces.push({ name: `${folder}faces${tag}/${dir}/${n}`, img: cell }); });
+      }
     } else pieces.push({ name: rel, img });
   }
 };
