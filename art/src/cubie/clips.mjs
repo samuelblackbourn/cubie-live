@@ -90,7 +90,9 @@ const notebook = (x, y) => pix(['ppp.ppp', 'lll.lll', 'ppp.ppp', 'lll.lll', 'kkk
 // a spark burst (workbench, on the contact frame): warm light, glows
 const sparks = (x, y) => pix(['y.y', '.w.', 'y.y'], x - 1, y - 1, { y: ['#ffd37a', true], w: ['#ffd37a', true] });
 // the "!" of a discovery: warm light, glows
-const bang = (fr) => pix(['ww', 'ww', 'ww', '..', 'ww'], fr.cx + 8, fr.headTop - 7, { w: ['#ffd37a', true] });
+const bang = (fr, dy = 0) => pix(['ww', 'ww', 'ww', '..', 'ww'], fr.cx + 8, fr.headTop - 7 + dy, { w: ['#ffd37a', true] });
+// the "?" of a puzzle (think): warm light, glows; bobs 1 px
+const query = (fr, dy = 0) => pix(['.ww.', 'w..w', '...w', '..w.', '....', '..w.'], fr.cx + 6, fr.headTop - 8 + dy, { w: ['#ffd37a', true] });
 const range = (n, fn) => Array.from({ length: n }, (_, f) => fn(f));
 
 export const CLIPS = {
@@ -263,22 +265,10 @@ Object.assign(CLIPS, {
     { side: { at: [22, 22], armsFront: true }, front: { A: [13, 25], armsFront: true } },
     { side: { at: [21, 34] }, front: { A: [10, 35] } },
   ] }), overlays: { 'front.berry': (fr) => { const h = fr.hands?.A; if (!h || fr.f > 2 || fr.d === 'N') return []; return berry(h.x, h.y - (fr.f === 2 ? 0 : 1)); } } },
-  // thinking (life-loop decide step): thinking face, a hand at the chin, dots building above the head
-  think: { ...action({ fps: 3, loop: true, face: Array(4).fill('thinking'), keys: [0, 1, 2, 3].map((i) => ({
-    side: { at: [20, 30] }, front: { A: [12, 30] }, body: { dots: [1, 2, 3, 3][i] } })) }) },
   // writing in a notebook held at the chest; the pen hand moves along the line (S only)
   write: { dirs: ['S'], fps: 3, loop: true,
     poses: [[[13, 37], [19, 36]], [[14, 36], [19, 36]], [[15, 37], [19, 36]], [[14, 36], [19, 36]]].map(([A, B]) => ({ at: { A, B } })),
     overlays: { 'held.notebook': (fr) => notebook(17, 39) } },
-  // rowing the raft: sitting low (the raft covers his legs), a stroke with the oar, splash on f3
-  row: { ...action({ fps: 5, loop: true, contact: [3], held: 'oar', keys: [
-    { side: { at: [22, 37], ang: 315 }, front: { A: [9, 37], B: [12, 37], ang: 225 } },
-    { side: { at: [21, 38], ang: 270 }, front: { A: [9, 38], B: [12, 38], ang: 270 } },
-    { side: { at: [18, 38], ang: 270 }, front: { A: [8, 38], B: [11, 38], ang: 270 } },
-    { side: { at: [15, 38], ang: 225 }, front: { A: [7, 37], B: [10, 37], ang: 315 } },
-    { side: { at: [15, 34], ang: 180 }, front: { A: [7, 34], B: [10, 34], ang: 315, behind: true } },
-    { side: { at: [19, 34], ang: 0 }, front: { A: [8, 35], B: [11, 35], ang: 225 } },
-  ].map((k) => ({ ...k, body: { bob: 3 } })) }) },
   // sulking: head hung, shoulders down, hands low, slow breath — sad face (S only)
   sulk: { dirs: ['S'], fps: 3, loop: true, face: Array(4).fill('sad'),
     poses: [0, 0, 1, 1].map((bob) => ({ bob, headDy: 2, ...both(0, -1) })) },
@@ -291,4 +281,54 @@ Object.assign(CLIPS, {
     poses: (d) => { const side = d === 'E' || d === 'W';
       return [{}, side ? { lean: 1 } : { bob: 1 }, side ? { lean: 1, headDx: 1 } : { bob: 1, headDx: 1 }, side ? { lean: 1, headDx: 1 } : { bob: 1, headDx: 1 }, side ? { lean: 1 } : { bob: 1 }, {}]; },
     overlays: { 'status.bang': (fr) => (fr.f >= 1 && fr.f <= 4 ? bang(fr) : []) } },
+});
+
+// ── group 4, revised: boats and thinking ──────────────────────────────────────
+// rowing: an oar in each hand, a proper stroke — reach, catch, pull (splash f3), drive, lift, return.
+// From the front both oars show, mirrored; from the side the far oar is behind him.
+const ROW = [
+  { side: [22, 36, 315], front: [[9, 34], 180] },
+  { side: [22, 37, 315], front: [[9, 36], 225] },
+  { side: [20, 38, 270], front: [[10, 37], 225] },
+  { side: [17, 38, 225], front: [[11, 37], 225] },
+  { side: [15, 35, 180], front: [[11, 35], 180] },
+  { side: [19, 34, 0], front: [[10, 33], 180] },
+];
+const oars = (fr) => {
+  const k = ROW[fr.f];
+  if (fr.d === 'E' || fr.d === 'W') return [...tool(fr, 'oar', k.side[2], { nudge: [fr.d === 'E' ? -1 : 1, 0], behind: true }), ...tool(fr, 'oar', k.side[2])];
+  return [...tool(fr, 'oar', k.front[1]), ...tool(fr, 'oar', k.front[1], { hand: 'B', flip: true })];
+};
+// paddling a canoe: one paddle, two hands, a stroke on one side then the other (splash f2, f6)
+const PADDLE = [ // front: top hand, lower hand, angle (from the top hand; low enough that the grip clears his mouth); side: near hand, angle, far side?
+  { front: [[15, 33], [12, 39], 225], side: [20, 31, 270, false] },
+  { front: [[14, 34], [11, 40], 225], side: [21, 32, 315, false] },
+  { front: [[13, 35], [10, 41], 225], side: [19, 33, 270, false] },
+  { front: [[13, 34], [10, 39], 270], side: [16, 32, 225, false] },
+  { front: [[16, 33], [19, 39], 315], side: [17, 31, 270, true] },
+  { front: [[17, 34], [20, 40], 315], side: [19, 32, 315, true] },
+  { front: [[18, 35], [21, 41], 315], side: [18, 33, 270, true] },
+  { front: [[18, 34], [21, 39], 270], side: [15, 32, 225, true] },
+];
+Object.assign(CLIPS, {
+  row: { dirs: ALL, fps: 5, loop: true, contact: [3],
+    poses: (d) => ROW.map((k) => (d === 'E' || d === 'W' ? { bob: 3, at: { A: d === 'W' ? mx(k.side) : k.side.slice(0, 2) } } : { bob: 3, at: { A: d === 'N' ? mx(k.front[0]) : k.front[0], B: d === 'N' ? k.front[0] : mx(k.front[0]) } })),
+    overlays: { 'held.oars': oars } },
+  paddle: { dirs: ALL, fps: 6, loop: true, contact: [2, 6],
+    poses: (d) => PADDLE.map((k) => (d === 'E' || d === 'W' ? { bob: 3, at: { A: d === 'W' ? mx(k.side) : k.side.slice(0, 2) } } : { bob: 3, at: { A: d === 'N' ? mx(k.front[0]) : k.front[0], B: d === 'N' ? mx(k.front[1]) : k.front[1] } })),
+    overlays: { 'held.paddle': (fr) => { const k = PADDLE[fr.f]; return fr.d === 'E' || fr.d === 'W' ? tool(fr, 'paddle', k.side[2], { behind: k.side[3] }) : tool(fr, 'paddle', k.front[2]); } } },
+
+  // thinking (life-loop decide step): his thinking eyes, a hand at the chin, a "?" bobbing above
+  think: { ...action({ fps: 3, loop: true, face: Array(4).fill('thinking'), keys: [0, 1, 2, 3].map(() => ({ side: { at: [20, 30] }, front: { A: [12, 30] } })) }),
+    overlays: { 'status.query': (fr) => query(fr, [0, -1, -1, 0][fr.f]) } },
+  // thinking hard: his eyes become a loading wheel, hand at the chin
+  'think.loading': { ...action({ fps: 8, loop: true, face: ['loading_0', 'loading_1', 'loading_2', 'loading_3'], keys: [0, 1, 2, 3].map(() => ({ side: { at: [20, 30] }, front: { A: [12, 30] } })) }) },
+  // eureka: eyes wide, a hand shoots up, a "!" pops above him, then a happy face
+  'think.eureka': { dirs: ALL, fps: 8, loop: false, face: ['thinking', 'surprised', 'surprised', 'happy', 'happy', 'happy'],
+    poses: (d) => { const side = d === 'E' || d === 'W';
+      const chin = side ? { at: { A: d === 'W' ? mx([20, 30]) : [20, 30] } } : { at: { A: d === 'N' ? mx([12, 30]) : [12, 30] } };
+      const up = side ? { arm: { dx: 4, dy: 15 }, armsFront: true } : { armA: { dx: 3, dy: 15 }, armsFront: true };
+      return [chin, { ...chin, bob: 1 }, { ...up, hop: 1 }, up, up, {}]; },
+    airborne: true,
+    overlays: { 'status.bang': (fr) => (fr.f >= 2 && fr.f <= 4 ? bang(fr, fr.f === 2 ? 1 : 0) : []) } },
 });
