@@ -129,15 +129,24 @@ export const FACES = {
   tired:     (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const ox of [x + ex, x + sw - ex - 4]) { fxRect(L, ox, y + 3, ox + 3, y + 5, TEAL[1]); L.setFx(ox, y + 5, null); L.setFx(ox + 3, y + 5, null); fxRect(L, ox, y + 3, ox + 3, y + 3, TEAL[2]); } fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[1]); },
   // very low power: dim eyes barely open (a sliver over a flat lid), mouth turned down — shuffle
   very_tired: (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const ox of [x + ex, x + sw - ex - 4]) { fxRect(L, ox, y + 5, ox + 3, y + 5, TEAL[2]); L.setFx(ox + 1, y + 4, TEAL[2]); L.setFx(ox + 2, y + 4, TEAL[2]); } const my = y + sh - 1; fxRect(L, x + sw / 2 - 1, my - 1, x + sw / 2, my - 1, TEAL[2]); L.setFx(x + sw / 2 - 2, my, TEAL[2]); L.setFx(x + sw / 2 + 1, my, TEAL[2]); },
-  // thinking hard (art-02): the eyes become a loading wheel — think.loading cycles loading_0..3
+  // thinking hard (art-02): each eye becomes a loading wheel — 8 dots round the eye's 4×5
+  // box, a bright 3-dot tail turning 2 steps a frame; think.loading cycles loading_0..3
   ...Object.fromEntries([0, 1, 2, 3].map((k) => [`loading_${k}`, (L, x, y, sw, sh) => {
-    const RING = [[0, -3], [2, -2], [3, 0], [2, 2], [0, 3], [-2, 2], [-3, 0], [-2, -2]]; const cx = x + sw / 2 - 1, cy = y + 4;
-    RING.forEach(([dx, dy], i) => { const age = (k * 2 - i + 8) % 8; const c = age === 0 ? TEAL[0] : age <= 2 ? TEAL[1] : TEAL[2]; fxRect(L, cx + dx, cy + dy, cx + dx + 1, cy + dy, c); });
+    const RING = [[1, 0], [2, 0], [3, 1], [3, 3], [2, 4], [1, 4], [0, 3], [0, 1]]; const ex = Math.floor((sw - 12) / 2);
+    for (const ox of [x + ex, x + sw - ex - 4]) RING.forEach(([dx, dy], i) => { const age = (k * 2 - i + 8) % 8; L.setFx(ox + dx, y + 1 + dy, age === 0 ? TEAL[0] : age <= 2 ? TEAL[1] : TEAL[2]); });
+    fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[2]);
   }])),
+  // the eye roll (sulk.eyeroll): the resting eyes slid up and across, mouth flat
+  ...Object.fromEntries([['roll_ul', -1, -2], ['roll_u', 0, -2], ['roll_ur', 1, -2]].map(([n, ddx, ddy]) => [n, (L, x, y, sw, sh) => {
+    const ex = Math.floor((sw - 12) / 2); eye(L, x + ex + ddx, y + 1 + ddy, 4, 5); eye(L, x + sw - ex - 4 + ddx, y + 1 + ddy, 4, 5);
+    fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[1]);
+  }])),
+  // unimpressed: flat half-lids, a flat mouth off to one side
+  unimpressed: (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const ox of [x + ex, x + sw - ex - 4]) { fxRect(L, ox, y + 3, ox + 3, y + 4, TEAL[1]); fxRect(L, ox, y + 3, ox + 3, y + 3, TEAL[2]); } fxRect(L, x + sw / 2, y + sh - 1, x + sw / 2 + 2, y + sh - 1, TEAL[1]); },
   squint:    (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const ox of [x + ex, x + sw - ex - 4]) { fxRect(L, ox, y + 3, ox + 3, y + 4, TEAL[1]); L.setFx(ox, y + 3, null); L.setFx(ox + 3, y + 3, null); L.setFx(ox + 1, y + 3, TEAL[0]); } fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[1]); },
 };
 export const APPROVED_FACES = ['idle', 'happy', 'thinking', 'sad', 'surprised', 'blink', 'off'];
-export const FACE_NAMES = [...APPROVED_FACES, 'embarrassed', 'closed', 'squint', 'tired', 'very_tired', 'loading_0', 'loading_1', 'loading_2', 'loading_3'];
+export const FACE_NAMES = [...APPROVED_FACES, 'embarrassed', 'closed', 'squint', 'tired', 'very_tired', 'loading_0', 'loading_1', 'loading_2', 'loading_3', 'roll_ul', 'roll_u', 'roll_ur', 'unimpressed'];
 
 /** The side-view wrap face: one eye on the screen's front edge. `idle` is the approved one; the rest are placeholders. */
 function sideFace(L, face, dir, fx1, sy0, sh) {
@@ -156,6 +165,9 @@ function sideFace(L, face, dir, fx1, sy0, sh) {
     case 'loading_0': case 'loading_1': case 'loading_2': case 'loading_3': { // a dot running round the wrap's edge
       const k = Number(face.at(-1)); const ring = [[near, sy0 + 3], [far, sy0 + 3], [far, sy0 + 5], [near, sy0 + 5]];
       ring.forEach(([x, y], i) => L.setFx(x, y, i === k ? TEAL[0] : TEAL[2])); return; }
+    case 'roll_ul': case 'roll_u': case 'roll_ur': { const back = face === 'roll_ul' ? -dir : face === 'roll_ur' ? dir : 0; const [a, b] = [Math.min(ex0, ex1) + (face === 'roll_u' ? 0 : back > 0 ? 0 : 0), Math.max(ex0, ex1)];
+      fxRect(L, a, sy0 + 1, b, sy0 + 5, TEAL[1]); L.setFx(far, sy0 + 9, TEAL[2]); return; }
+    case 'unimpressed': fxRect(L, ex0, sy0 + 4, ex1, sy0 + 5, TEAL[1]); fxRect(L, ex0, sy0 + 4, ex1, sy0 + 4, TEAL[2]); L.setFx(far, sy0 + 9, TEAL[1]); return;
     case 'very_tired': fxRect(L, ex0, sy0 + 6, ex1, sy0 + 6, TEAL[2]); L.setFx(far, sy0 + 7, TEAL[2]); L.setFx(far, sy0 + 9, TEAL[2]); return;
     case 'embarrassed': L.setFx(near, sy0 + 4, TEAL[1]); L.setFx(far, sy0 + 5, TEAL[1]); L.setFx(near, sy0 + 6, TEAL[1]); L.setFx(far, sy0 + 7, PINK[1]); return;
     default: throw new Error(`no side face ${face}`);

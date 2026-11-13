@@ -91,6 +91,14 @@ const notebook = (x, y) => pix(['ppp.ppp', 'lll.lll', 'ppp.ppp', 'lll.lll', 'kkk
 const sparks = (x, y) => pix(['y.y', '.w.', 'y.y'], x - 1, y - 1, { y: ['#ffd37a', true], w: ['#ffd37a', true] });
 // the "!" of a discovery: warm light, glows
 const bang = (fr, dy = 0) => pix(['ww', 'ww', 'ww', '..', 'ww'], fr.cx + 8, fr.headTop - 7 + dy, { w: ['#ffd37a', true] });
+// the eureka lightbulb: a warm glowing bulb on a grey screw base; rays flash on `rays` frames
+const bulb = (fr, rays = false) => {
+  // (only 8 rows sit above his head, so the bulb is 5×7 and the rays go out to its sides)
+  const x0 = fr.cx + 6, y0 = Math.max(0, fr.headTop - 8);
+  const out = pix(['.yyy.', 'yhhyy', 'yhyyy', 'yyyyy', '.yyy.', '.ggg.', '.kkk.'], x0, y0, { y: ['#ffd37a', true], h: ['#f5ecc9', true], g: ['#9aa3b1'], k: ['#6b7382'] });
+  if (rays) for (const [dx, dy] of [[-2, 2], [-3, 2], [6, 2], [7, 2], [-2, 0], [6, 0]]) out.push([x0 + dx, y0 + dy, '#ffd37a', true]);
+  return out;
+};
 // the "?" of a puzzle (think): warm light, glows; bobs 1 px
 const query = (fr, dy = 0) => pix(['.ww.', 'w..w', '...w', '..w.', '....', '..w.'], fr.cx + 6, fr.headTop - 8 + dy, { w: ['#ffd37a', true] });
 const range = (n, fn) => Array.from({ length: n }, (_, f) => fn(f));
@@ -323,12 +331,20 @@ Object.assign(CLIPS, {
     overlays: { 'status.query': (fr) => query(fr, [0, -1, -1, 0][fr.f]) } },
   // thinking hard: his eyes become a loading wheel, hand at the chin
   'think.loading': { ...action({ fps: 8, loop: true, face: ['loading_0', 'loading_1', 'loading_2', 'loading_3'], keys: [0, 1, 2, 3].map(() => ({ side: { at: [20, 30] }, front: { A: [12, 30] } })) }) },
-  // eureka: eyes wide, a hand shoots up, a "!" pops above him, then a happy face
+  // eureka: eyes wide, a hand shoots up, a lightbulb lights above him (rays at the peak), then a happy face
   'think.eureka': { dirs: ALL, fps: 8, loop: false, face: ['thinking', 'surprised', 'surprised', 'happy', 'happy', 'happy'],
     poses: (d) => { const side = d === 'E' || d === 'W';
       const chin = side ? { at: { A: d === 'W' ? mx([20, 30]) : [20, 30] } } : { at: { A: d === 'N' ? mx([12, 30]) : [12, 30] } };
       const up = side ? { arm: { dx: 4, dy: 15 }, armsFront: true } : { armA: { dx: 3, dy: 15 }, armsFront: true };
       return [chin, { ...chin, bob: 1 }, { ...up, hop: 1 }, up, up, {}]; },
     airborne: true,
-    overlays: { 'status.bang': (fr) => (fr.f >= 2 && fr.f <= 4 ? bang(fr, fr.f === 2 ? 1 : 0) : []) } },
+    overlays: { 'status.bulb': (fr) => (fr.f >= 2 && fr.f <= 4 ? bulb(fr, fr.f === 3) : []) } },
+});
+
+// ── sulk, the eye roll ──
+Object.assign(CLIPS, {
+  // rolls his eyes up and over, then settles unimpressed with a little huff (S only, like sulk)
+  'sulk.eyeroll': { dirs: ['S'], fps: 5, loop: false,
+    face: ['sad', 'roll_ul', 'roll_u', 'roll_ur', 'unimpressed', 'unimpressed'],
+    poses: [{ headDy: 1 }, { headDx: -1 }, {}, { headDx: 1 }, { bob: 1, headDy: 1, ...both(0, -1) }, { headDy: 1, ...both(0, -1) }] },
 });
