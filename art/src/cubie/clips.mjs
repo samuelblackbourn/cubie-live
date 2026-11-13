@@ -48,6 +48,13 @@ const bundle = (fr) => {
   const back = fr.d === 'E' ? t.x0 : t.x1;
   return fr.d === 'E' ? sack(back - 5, t.y0 - 3, back + 1, t.y1 - 1) : sack(back - 1, t.y0 - 3, back + 5, t.y1 - 1);
 };
+// the low-battery icon: light case, dark inside, a red sliver of charge; it all glows
+const BATTERY = ['########.', '#rr.....##', '#rr.....##', '#rr.....##', '########.'];
+const battery = (fr) => {
+  const out = [];
+  BATTERY.forEach((row, y) => [...row].forEach((ch, x) => { const Y = fr.headTop - 8 + y; if (ch !== ' ' && Y >= 0) out.push([fr.cx - 5 + x, Y, ch === '#' ? '#e6eaf0' : ch === 'r' ? '#d0414f' : '#2e323c']); }));
+  return out;
+};
 const range = (n, fn) => Array.from({ length: n }, (_, f) => fn(f));
 
 export const CLIPS = {
@@ -83,10 +90,14 @@ export const CLIPS = {
     overlays: { 'back.bundle': bundle } },
   // power "a bit low": head lower, arms barely swing
   'walk.tired': { dirs: ALL, fps: 7, loop: true, contact: [1, 5],
-    poses: range(8, (f) => ({ ...walkPose(f, { sep: [3, 4, 3, 0, -3, -4, -3, 0] }), headDy: 2, handA: 0, handB: 0, armDx: [-1, -1, 0, 0, 1, 1, 0, 0][f] })) },
+    poses: range(8, (f) => ({ ...walkPose(f, { sep: [3, 4, 3, 0, -3, -4, -3, 0] }), headDy: 2, handA: 0, handB: 0, armDx: [-1, -1, 0, 0, 1, 1, 0, 0][f] })),
+    face: Array(8).fill('tired') },
   // low power: head hung low, arms dangling, feet dragged (lift 1, short stride), no arm swing
   shuffle: { dirs: ALL, fps: 4, loop: true, contact: [1, 4],
-    poses: (d) => range(6, (f) => ({ bob: [0, 0, 1, 0, 0, 1][f], headDy: 3, ...(d === 'E' || d === 'W' ? {} : both(0, -1)), ...feet([2, 3, 1, -2, -3, -1], f), liftA: [1, 0, 0, 0, 0, 1][f], liftB: [0, 0, 1, 1, 0, 0][f] })) },
+    poses: (d) => range(6, (f) => ({ bob: [0, 0, 1, 0, 0, 1][f], headDy: 3, ...(d === 'E' || d === 'W' ? {} : both(0, -1)), ...feet([2, 3, 1, -2, -3, -1], f), liftA: [1, 0, 0, 0, 0, 1][f], liftB: [0, 0, 1, 1, 0, 0][f] })),
+    face: Array(6).fill('very_tired'),
+    // a low-battery icon blinks above his head (on 2 frames, off 1, at 4 fps)
+    overlays: { 'status.battery': (fr) => ([1, 1, 0, 1, 1, 0][fr.f] ? battery(fr) : []) } },
   // slopes: lean into the hill going up, lean back and arms out a touch coming down
   'walk.slope_up': { dirs: ALL, fps: 8, loop: true, contact: [1, 5],
     poses: (d) => range(8, (f) => ({ ...walkPose(f), ...(d === 'E' || d === 'W' ? { lean: 1 } : { headDy: 1 }) })) },

@@ -122,10 +122,14 @@ export const FACES = {
   // placeholders added in art-01 (animations note §1); not part of the approved seven
   embarrassed: (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const [ox, d] of [[x + ex, 1], [x + sw - ex - 4, -1]]) { const a = d > 0 ? ox : ox + 3, b = d > 0 ? ox + 3 : ox; L.setFx(a, y + 2, TEAL[1]); L.setFx(a + d, y + 3, TEAL[1]); L.setFx(a + 2 * d, y + 3, TEAL[1]); L.setFx(b, y + 4, TEAL[1]); L.setFx(a, y + 4, TEAL[1]); } fxRect(L, x + 1, y + 5, x + 2, y + 5, PINK[1]); fxRect(L, x + sw - 3, y + 5, x + sw - 2, y + 5, PINK[1]); fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[2]); },
   closed:    (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const ox of [x + ex, x + sw - ex - 4]) { L.setFx(ox, y + 3, TEAL[2]); fxRect(L, ox + 1, y + 4, ox + 2, y + 4, TEAL[2]); L.setFx(ox + 3, y + 3, TEAL[2]); } },
+  // low power (art-02): heavy half-closed eyes, flat mouth — walk.tired
+  tired:     (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const ox of [x + ex, x + sw - ex - 4]) { fxRect(L, ox, y + 3, ox + 3, y + 5, TEAL[1]); L.setFx(ox, y + 5, null); L.setFx(ox + 3, y + 5, null); fxRect(L, ox, y + 3, ox + 3, y + 3, TEAL[2]); } fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[1]); },
+  // very low power: dim eyes barely open (a sliver over a flat lid), mouth turned down — shuffle
+  very_tired: (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const ox of [x + ex, x + sw - ex - 4]) { fxRect(L, ox, y + 5, ox + 3, y + 5, TEAL[2]); L.setFx(ox + 1, y + 4, TEAL[2]); L.setFx(ox + 2, y + 4, TEAL[2]); } const my = y + sh - 1; fxRect(L, x + sw / 2 - 1, my - 1, x + sw / 2, my - 1, TEAL[2]); L.setFx(x + sw / 2 - 2, my, TEAL[2]); L.setFx(x + sw / 2 + 1, my, TEAL[2]); },
   squint:    (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const ox of [x + ex, x + sw - ex - 4]) { fxRect(L, ox, y + 3, ox + 3, y + 4, TEAL[1]); L.setFx(ox, y + 3, null); L.setFx(ox + 3, y + 3, null); L.setFx(ox + 1, y + 3, TEAL[0]); } fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[1]); },
 };
 export const APPROVED_FACES = ['idle', 'happy', 'thinking', 'sad', 'surprised', 'blink', 'off'];
-export const FACE_NAMES = [...APPROVED_FACES, 'embarrassed', 'closed', 'squint'];
+export const FACE_NAMES = [...APPROVED_FACES, 'embarrassed', 'closed', 'squint', 'tired', 'very_tired'];
 
 /** The side-view wrap face: one eye on the screen's front edge. `idle` is the approved one; the rest are placeholders. */
 function sideFace(L, face, dir, fx1, sy0, sh) {
@@ -140,6 +144,8 @@ function sideFace(L, face, dir, fx1, sy0, sh) {
     case 'thinking': fxRect(L, ex0, sy0 + 3, ex1, sy0 + 6, TEAL[1]); L.setFx(far, sy0 + 3, TEAL[0]); return;
     case 'blink': case 'closed': fxRect(L, ex0, sy0 + 5, ex1, sy0 + 5, face === 'blink' ? TEAL[1] : TEAL[2]); if (face === 'blink') { L.setFx(far, sy0 + 9, TEAL[2]); L.setFx(near, sy0 + 9, TEAL[2]); L.setFx(far, sy0 + 8, TEAL[2]); } return;
     case 'squint': fxRect(L, ex0, sy0 + 4, ex1, sy0 + 5, TEAL[1]); mouth(); return;
+    case 'tired': fxRect(L, ex0, sy0 + 5, ex1, sy0 + 7, TEAL[1]); fxRect(L, ex0, sy0 + 5, ex1, sy0 + 5, TEAL[2]); L.setFx(far, sy0 + 9, TEAL[2]); return;
+    case 'very_tired': fxRect(L, ex0, sy0 + 6, ex1, sy0 + 6, TEAL[2]); L.setFx(far, sy0 + 7, TEAL[2]); L.setFx(far, sy0 + 9, TEAL[2]); return;
     case 'embarrassed': L.setFx(near, sy0 + 4, TEAL[1]); L.setFx(far, sy0 + 5, TEAL[1]); L.setFx(near, sy0 + 6, TEAL[1]); L.setFx(far, sy0 + 7, PINK[1]); return;
     default: throw new Error(`no side face ${face}`);
   }
