@@ -21,8 +21,8 @@ import { readPng } from './png.mjs';
 import { EMISSIVE, STRIP_KEY, eachPixel, hsv, manifests, paletteSet, ramps, readManifest, repoRoot, rgbHex } from './lib.mjs';
 
 const T = 32;
-/** Max height in px by layer (art system §7). */
-const CLASS_H = { decal: 16, vegetation: 64, node: 80, structure: 128, item: 32, ui: Infinity, ground: 32, character: 48, overlay: 48 };
+/** Max height in px by layer (art system §7, v0.1.1: trees 96 px). */
+const CLASS_H = { decal: 16, vegetation: 96, node: 80, structure: 128, item: 32, ui: Infinity, ground: 32, character: 48, overlay: 48 };
 const STANDS = new Set(['vegetation', 'node', 'structure', 'character', 'overlay']);
 
 export function checkAsset(file, row) {
