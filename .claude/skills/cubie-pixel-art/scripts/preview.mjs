@@ -30,7 +30,8 @@ export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9' } 
   const anchor = j.anchors?.face?.[d]?.[f];
   if (anchor && fs.existsSync(path.join(dir, 'faces.json'))) {
     const fj = JSON.parse(fs.readFileSync(path.join(dir, 'faces.json'), 'utf8'));
-    const cell = fj.cells?.[d] ?? (d === 'S' || !fj.cells ? { file: 'faces.png', size: fj.size } : null);
+    const kind = anchor[2] ?? d;
+    const cell = fj.cells?.[kind] ?? (kind === 'S' || !fj.cells ? { file: 'faces.png', size: fj.size } : null);
     const k = fj.names.indexOf(j.face?.[f] ?? face);
     if (cell && k >= 0) {
       const [cw, ch] = cell.size;
@@ -38,6 +39,14 @@ export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9' } 
       const ef = path.join(dir, cell.file.replace(/\.png$/, '_emissive.png'));
       if (fs.existsSync(ef)) over(glow, crop(readPng(ef), k * cw, 0, cw, ch), anchor[0], anchor[1]);
     }
+  }
+  // overlays (<clip>.held|back|status.<name>.png): occlusion is baked in, so they go on top
+  const ovRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(back|held|status|front)\\.[a-z0-9_]+\\.png$`);
+  const order = { back: 0, held: 1, status: 2, front: 3 };
+  for (const f2 of fs.readdirSync(dir).filter((x) => ovRe.test(x)).sort((p, q) => order[p.split('.').at(-3)] - order[q.split('.').at(-3)])) {
+    over(body, crop(readPng(path.join(dir, f2)), f * w, r * h, w, h), 0, 0);
+    const e2 = path.join(dir, f2.replace(/\.png$/, '_emissive.png'));
+    if (fs.existsSync(e2)) over(glow, crop(readPng(e2), f * w, r * h, w, h), 0, 0);
   }
   over(body, glow, 0, 0);
   return { body, glow, j };

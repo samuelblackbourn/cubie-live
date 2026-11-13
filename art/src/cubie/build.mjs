@@ -42,18 +42,42 @@ const only = args.includes('--only') ? args[args.indexOf('--only') + 1].split(',
 fs.mkdirSync(out, { recursive: true });
 for (const [clip, c] of Object.entries(CLIPS)) {
   if (only && !only.includes(clip)) continue;
-  const n = c.poses.length; const dirs = c.dirs;
+  const dirs = c.dirs; const posesFor = (d) => (typeof c.poses === 'function' ? c.poses(d) : c.poses);
+  const n = posesFor(dirs[0]).length;
   const base = blank(W * n, H * dirs.length); const em = blank(W * n, H * dirs.length);
-  const anchors = Object.fromEntries(dirs.map((d) => [d, d === 'N' ? null : []]));
-  dirs.forEach((d, r) => c.poses.forEach((pose, f) => {
-    const { rows, em: lit, screen } = draw(d, { pose, face: 'off' });
-    paint(base, rows, f * W, r * H);
-    paint(em, Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => lit.find((p) => p[0] === x && p[1] === y)?.[2] ?? null)), f * W, r * H);
-    if (d !== 'N') anchors[d].push([screen.x, screen.y]);
+  const ovs = Object.fromEntries(Object.keys(c.overlays ?? {}).map((k) => [k, { base: blank(W * n, H * dirs.length), em: blank(W * n, H * dirs.length) }]));
+  const anchors = Object.fromEntries(dirs.map((d) => [d, []]));
+  const frontArms = {};
+  const grid = (list) => Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => list.find((p) => p[0] === x && p[1] === y)?.[2] ?? null));
+  dirs.forEach((d, r) => posesFor(d).forEach((pose, f) => {
+    let fr = draw(d, { pose, face: 'off' });
+    if (pose.armsFront) { // arms in front of the head go on the front.arms overlay, above the face
+      const bare = draw(d, { pose: { ...pose, hideArms: true }, face: 'off' });
+      const arms = []; fr.rows.forEach((row, y) => row.forEach((c, x) => { if (c && c !== bare.rows[y][x]) arms.push([x, y, c]); }));
+      (frontArms[`${d}`] ??= [])[f] = arms;
+      fr = { ...bare, hands: fr.hands };
+    }
+    paint(base, fr.rows, f * W, r * H);
+    paint(em, grid(fr.em), f * W, r * H);
+    // the face goes on whichever head the frame shows: [x, y] on its own facing's head,
+    // [x, y, kind] on a turned head, null when the back of the head is turned to us
+    anchors[d].push(fr.screen ? (fr.screen.kind && fr.screen.kind !== d ? [fr.screen.x, fr.screen.y, fr.screen.kind] : [fr.screen.x, fr.screen.y]) : null);
+    for (const [k, fn] of Object.entries(c.overlays ?? {})) {
+      const px = fn({ ...fr, d, f, n, pose });
+      paint(ovs[k].base, grid(px), f * W, r * H);
+      paint(ovs[k].em, grid(px.filter((p) => p[3] !== false)), f * W, r * H);
+    }
   }));
+  for (const d of dirs) if (anchors[d].every((a) => a === null)) anchors[d] = null;
+  if (Object.keys(frontArms).length) {
+    const o = blank(W * n, H * dirs.length);
+    dirs.forEach((d, r) => (frontArms[d] ?? []).forEach((arms, f) => arms && paint(o, grid(arms), f * W, r * H)));
+    writePng(path.join(out, `${clip}.front.arms.png`), o);
+  }
+  for (const [k, o] of Object.entries(ovs)) { writePng(path.join(out, `${clip}.${k}.png`), o.base); writePng(path.join(out, `${clip}.${k}_emissive.png`), o.em); }
   writePng(path.join(out, `${clip}.png`), base);
   writePng(path.join(out, `${clip}_emissive.png`), em);
-  const json = { clip, frame: { w: W, h: H }, count: n, fps: c.fps, loop: c.loop, dirs, ...(c.contact ? { contact: c.contact } : {}), ...(c.face ? { face: c.face } : {}), placeholder: true, anchors: { face: anchors } };
+  const json = { clip, frame: { w: W, h: H }, count: n, fps: c.fps, loop: c.loop, dirs, ...(c.contact ? { contact: c.contact } : {}), ...(c.face ? { face: c.face } : {}), ...(c.airborne ? { airborne: true } : {}), anchors: { face: anchors } };
   fs.writeFileSync(path.join(out, `${clip}.json`), `${JSON.stringify(json, null, 1)}\n`);
   console.log(`${clip}: ${n} frames × ${dirs.join(',')} @ ${c.fps} fps`);
 }
