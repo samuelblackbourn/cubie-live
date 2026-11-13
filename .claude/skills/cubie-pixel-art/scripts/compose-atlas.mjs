@@ -47,7 +47,9 @@ const walk = (d) => {
     if (!e.name.endsWith('.png')) continue;
     const rel = path.relative(src, p).replace(/\\/g, '/').replace(/\.png$/, '');
     const base = path.basename(rel); const folder = path.dirname(rel) === '.' ? '' : `${path.dirname(rel)}/`;
-    const clipName = base.replace(/_emissive$/, '').replace(/\..*$/, '');
+    // a clip strip has <base>.json; its emissive drops _emissive; an overlay is <clip>.<held|back|status>.<name>
+    const ov = base.replace(/_emissive$/, '').match(/^(.*)\.(held|back|status)\.[a-z0-9_]+$/);
+    const clipName = ov ? ov[1] : base.replace(/_emissive$/, '');
     if (deferred.has(clipName) || deferred.has(base)) continue;
     const jf = path.join(d, `${clipName}.json`);
     const img = readPng(p);

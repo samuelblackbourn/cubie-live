@@ -11,7 +11,9 @@
  *                           anchors: { face: { S: [[x,y]…count], W: …, E: …, N: null } } }
  *   <clip>_emissive.png   optional; same size; only glowing pixels (eyes and mouth
  *                         live on the face overlay, so here: strip, antenna, charge LED)
- *   <clip>.<overlay>.png  optional overlays (held tool, back pack); same size and frames
+ *   <clip>.<layer>.<name>.png  optional overlays, layer = held | back | status (held.axe,
+ *                         back.battery_pack, status.wet); same size and frames as the clip,
+ *                         drawn above the body with occlusion already baked in
  * and once for the folder:
  *   faces.json            { size: [w, h], names: [...], cells?: { S: {file, size}, E: …, W: … } }
  *                         one sheet per direction that shows a face, one face per cell
@@ -138,7 +140,7 @@ export function checkPack(dir, { only } = {}) {
         }
       }
       if (faceAnch && Array.isArray(faceAnch[d]) && faceAnch[d].length !== j.count) E(`${d}: ${faceAnch[d].length} face anchors for ${j.count} frames`);
-      if (heights.length) { const s = Math.max(...heights) - Math.min(...heights); if (s > 2) Wn(`${d}: height varies by ${s} px across frames (bob is 1 px)`); }
+      if (heights.length && j.loop) { const s = Math.max(...heights) - Math.min(...heights); if (s > 2) Wn(`${d}: height varies by ${s} px across frames in a loop (bob is 1 px)`); }
     });
 
     // emissive and overlays
@@ -154,7 +156,8 @@ export function checkPack(dir, { only } = {}) {
         summary.push(`${clip}: emissive ${n} px`);
       }
     } else Wn(`no ${clip}_emissive.png (strip, antenna bobble and charge LED glow from it)`);
-    for (const f of files.filter((x) => x.startsWith(`${clip}.`) && x.endsWith('.png') && x !== `${clip}.png`)) {
+    const overlayRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(held|back|status)\\.[a-z0-9_]+(_emissive)?\\.png$`);
+    for (const f of files.filter((x) => overlayRe.test(x))) {
       const o = readPng(path.join(dir, f));
       if (o.width !== img.width || o.height !== img.height) E(`overlay ${f} is ${o.width}×${o.height}, expected ${img.width}×${img.height}`);
       else summary.push(`${clip}: overlay ${f}`);
