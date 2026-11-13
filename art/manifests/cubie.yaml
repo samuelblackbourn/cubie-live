@@ -1,0 +1,33 @@
+# Cubie's sprite sheets (art/cubie/). P2 placeholders from art-01, drawn in code
+# from model O (art/src/cubie/model.mjs, build.mjs); PixelLab makes the canonical
+# sheets in P3 against art/reference/cubie/. pass1/ and pass2/ are the
+# look-and-fix passes kept for review; the top level is pass 2.
+- id: idle
+  layer: character
+  clip: idle
+  frames: 4
+  fps: 4
+  dirs: [S, W, E, N]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"
+- id: walk
+  layer: character
+  clip: walk
+  frames: 8
+  fps: 10
+  contact: [1, 5]
+  dirs: [S, W, E, N]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"
+- id: faces
+  layer: overlay
+  # approved seven + embarrassed, closed, squint (placeholders); S 18×8, E/W 4×8
+  states: [idle, happy, thinking, sad, surprised, blink, off, embarrassed, closed, squint]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"

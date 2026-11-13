@@ -1,0 +1,55 @@
+{
+ "size": [
+  18,
+  11
+ ],
+ "names": [
+  "idle",
+  "happy",
+  "thinking",
+  "sad",
+  "surprised",
+  "blink",
+  "off",
+  "embarrassed",
+  "closed",
+  "squint"
+ ],
+ "approved": [
+  "idle",
+  "happy",
+  "thinking",
+  "sad",
+  "surprised",
+  "blink",
+  "off"
+ ],
+ "placeholder": [
+  "embarrassed",
+  "closed",
+  "squint"
+ ],
+ "cells": {
+  "S": {
+   "file": "faces.png",
+   "size": [
+    18,
+    11
+   ]
+  },
+  "E": {
+   "file": "faces_E.png",
+   "size": [
+    4,
+    11
+   ]
+  },
+  "W": {
+   "file": "faces_W.png",
+   "size": [
+    4,
+    11
+   ]
+  }
+ }
+}
