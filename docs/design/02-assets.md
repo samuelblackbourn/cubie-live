@@ -87,8 +87,8 @@ Briefs:
 
 | id | layer | size | tool | hits | drops | regrow | density | states |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `birch` | vegetation | 1×2 | axe | 3 | softwood 2–3, biomass 1 | 6 days | 10 | 3 variants; stump state |
-| `young_oak` | vegetation | 1×2 | axe | 4 | softwood 3–4 | 8 days | 6 | 2 variants; stump |
+| `birch` | vegetation | 1×3 | axe | 3 | softwood 2–3, biomass 1 | 6 days | 10 | 3 variants; stump state |
+| `young_oak` | vegetation | 1×3 | axe | 4 | softwood 3–4 | 8 days | 6 | 2 variants; stump |
 | `pine_sapling` | vegetation | 1×1 | axe | 2 | softwood 1 | 4 days | 6 | 2 variants |
 | `forest_bush` | vegetation | 1×1 | hands | 2 | biomass 2 | 3 days | 8 | 2 variants |
 | `berry_bush` | — | shared with meadow | | | | | 3 | |
@@ -103,8 +103,8 @@ Briefs:
 | `forest_clearing_flowers` | decal | 1×1 | hands | 1 | biomass 1 | 2 days | 4 | 1 |
 
 Briefs:
-- `birch` — slender white-barked birch, 32×64, black bark marks, light airy canopy, 3 canopy shapes; *stump* 32×32 pale cut face with rings.
-- `young_oak` — stockier trunk, broad rounded canopy, 32×64, 2 shapes; stump darker.
+- `birch` — slender white-barked birch, 32×96, black bark marks, light airy canopy, 3 canopy shapes; *stump* 32×32 pale cut face with rings.
+- `young_oak` — stockier trunk, broad rounded canopy, 32×96, 2 shapes; stump darker.
 - `pine_sapling` — small conifer, 32×40, 2 shapes.
 - `forest_bush` — darker, denser bush than the meadow one, 2 shapes.
 - `fern` — spreading fern fronds, 2 shapes, cool green.
@@ -127,7 +127,7 @@ Briefs:
 | `scree` | decal | 1×1 | hands | 1 | stone 1 | never | 15 | 3 variants |
 | `heather` | vegetation | 1×1 | hands | 1 | biomass 1 | 3 days | 15 | 2 colours |
 | `gorse` | vegetation | 1×1 | hands | 2 | biomass 2 | 4 days | 6 | 1 |
-| `windswept_tree` | vegetation | 1×2 | axe | 3 | hardwood 1–2, softwood 1 | 10 days | 2 | 2 variants; stump |
+| `windswept_tree` | vegetation | 1×3 | axe | 3 | hardwood 1–2, softwood 1 | 10 days | 2 | 2 variants; stump |
 | `bent_grass` | decal | 1×1 | none | — | — | — | 25 | 2 variants |
 | `cairn` | decal | 1×1 | none | — | — | — | 2 | 1 (a human trace, curiosity) |
 | `cave_mouth_hills` | structure (POI, level connector) | 2×2 | none | — | — | — | 1 | dark / lit (after lamp) |
@@ -140,7 +140,7 @@ Briefs:
 - `scree` — loose stone scatter on a slope, 3 densities.
 - `heather` — low purple/pink flowering heather mat, 2 colours.
 - `gorse` — spiky dark-green bush with yellow flowers.
-- `windswept_tree` — lone hawthorn leaning hard to one side, sparse canopy, 32×64.
+- `windswept_tree` — lone hawthorn leaning hard to one side, sparse canopy, 32×96.
 - `cairn` — small stacked-stone cairn.
 - `cave_mouth_hills` — 64×64 dark opening in a rock face with a rubble lip; *lit* state has a warm glow from within.
 
@@ -367,3 +367,8 @@ No commercial game rips. Everything on the credits page from the manifest.
 
 Starter-island count: ~14 footstep materials + ~30 tool/material pairs + ~20 pod and
 event sounds + a few UI, at 3–5 takes each — roughly 250 files, under 10 MB.
+
+## 13. Change log
+
+- 2026-11-13 (art-01) — trees ruled **96 px** (art system v0.1.1): `birch`, `young_oak` and
+  `windswept_tree` go from 1×2 / 32×64 to 1×3 / 32×96.
