@@ -1,10 +1,10 @@
-// Cubie, model O, with a pose — the drawing code of turnaround.mjs (approved
-// 2026-11-13) made posable for the placeholder clips (art-01 step 3).
+// Cubie, model O, with a pose. The one drawing of Cubie: turnaround.mjs renders
+// the approved reference from it, build.mjs the clips. Approved 2026-11-13 and
+// revised the same evening (docs/design/07-cubie-character.md §5, step 9).
 //
 // Two render modes:
-//   'approved'  everything baked, exactly as turnaround.mjs draws it. At the rest
-//               pose this reproduces art/reference/cubie/ byte for byte (build.mjs
-//               checks it on every run), which is how we know it is the same model.
+//   'approved'  everything baked: what turnaround.mjs writes to art/reference/cubie/.
+//               build.mjs checks the reference still matches before every run.
 //   'clip'      what the renderer loads: the screen is blank (the face is an
 //               overlay drawn by anchor), the chest strip is the #ff00ff key, and
 //               everything that glows is drawn "off" in the base with its lit
@@ -16,7 +16,6 @@
 //   dxA/B      foot A / B stride in px along the facing (E/W only; + = forward)
 //   handA/B    hand A / B raised this many px (S/N) — the arm swing seen from the front
 //   armDx      near arm swing in px along the facing (E/W)
-//   fix        { sideArm: near arm one column further back, vent: back-view vent higher }
 import { Layer } from '../../../.claude/skills/cubie-pixel-art/scripts/pix.mjs';
 
 export const W = 32, H = 48;
@@ -32,7 +31,12 @@ export const KEY = '#ff00ff';
 /** colours a glowing part shows when "off" in the base sprite */
 const OFF = { bobbleHi: '#9aa3b1', bobble: '#6b7382', led: '#4d5361' };
 
-export const O = { headW: 24, headD: 16, headTop: 13, headF: 10, neck: 0, torsoW: 10, torsoD: 8, torsoTop: 3, torsoF: 8, legH: 6, foot: 3, armDrop: 1, screenW: 18, screenH: 8, domeR: 4 };
+// Revision 2 (2026-11-13 evening, the creator): the face 3 rows taller (screen 18×11,
+// eyes and mouth in its middle, a slight smile at rest), the top of the head 3 rows
+// lower (dome 13 → 7 rows; he is 45 px tall), hands without side points (a 1-px
+// nub under the arm), white ears, and the two pass-2 fixes made part of the model
+// (side near arm one column back, back vent up on the dome).
+export const O = { headW: 24, headD: 16, headTop: 7, headF: 13, neck: 0, torsoW: 10, torsoD: 8, torsoTop: 3, torsoF: 8, legH: 6, foot: 3, armDrop: 1, screenW: 18, screenH: 11, domeR: 4, ear: 'metal', hand: 'nub', sideArm: true, vent: true };
 
 const mk = () => new Layer(W, H, RAMPS, OUT);
 
@@ -60,7 +64,12 @@ function round(L, x0, y0, x1, y1, r) {
 function ring(L, x0, y0, x1, y1) { for (let y = y0 - 1; y <= y1 + 1; y++) for (let x = x0 - 1; x <= x1 + 1; x++) if (x < x0 || x > x1 || y < y0 || y > y1) L.set(x, y, null); }
 const fxRect = (L, x0, y0, x1, y1, c) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) L.setFx(x, y, c); };
 const ball = (L, x, y) => { L.rect(x, y, x + 1, y + 1, 'dark', (xx, yy) => (xx === x && yy === y ? 1 : xx === x + 1 && yy === y + 1 ? 4 : 3)); };
-const hand = (L, x, y) => { L.rect(x, y, x + 2, y + 2, 'dark', (xx, yy) => (yy === y ? 2 : yy === y + 2 || xx === x + 2 ? 4 : 3)); round(L, x, y, x + 2, y + 2, 1); };
+const hand = (L, x, y, kind = 'plus') => {
+  if (kind === 'nub') { L.rect(x + 1, y, x + 1, y + 2, 'dark', (xx, yy) => (yy === y ? 2 : yy === y + 2 ? 4 : 3)); return; }
+  L.rect(x, y, x + 2, y + 2, 'dark', (xx, yy) => (yy === y ? 2 : yy === y + 2 || xx === x + 2 ? 4 : 3));
+  if (kind === 'plus') round(L, x, y, x + 2, y + 2, 1);
+  else { L.set(x, y, null); L.set(x + 2, y, null); } // mitten: top corners round, flat bottom — no side points
+};
 
 /** A glowing pixel: in 'approved' it is baked; in 'clip' the base gets `off` and the light goes to the emissive list. */
 function glow(L, ctx, x, y, lit, off) {
@@ -84,13 +93,16 @@ function eye(L, x, y, w = 4, h = 5, glint = true) {
   if (glint) { L.setFx(x + 1, y + 1, TEAL[0]); if (w > 3) L.setFx(x + 2, y + 1, TEAL[0]); if (h > 3) L.setFx(x + 1, y + 2, TEAL[0]); }
 }
 function arch(L, x, y, w = 4) { fxRect(L, x + 1, y, x + w - 2, y, TEAL[1]); L.setFx(x, y + 1, TEAL[1]); L.setFx(x + w - 1, y + 1, TEAL[1]); L.setFx(x + 1, y + 1, TEAL[0]); }
+const smile = (L, x, y, sw, sh) => { const my = y + sh - 1; fxRect(L, x + sw / 2 - 1, my, x + sw / 2, my, TEAL[1]); L.setFx(x + sw / 2 - 2, my - 1, TEAL[1]); L.setFx(x + sw / 2 + 1, my - 1, TEAL[1]); };
 export const FACES = {
-  idle:      (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2), eh = Math.min(5, sh - 3); eye(L, x + ex, y + 1, 4, eh); eye(L, x + sw - ex - 4, y + 1, 4, eh); fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[1]); },
+  // resting face: open eyes and a slight smile (mouth corners up one row; revision 2)
+  idle:      (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2), eh = Math.min(5, sh - 3); eye(L, x + ex, y + 1, 4, eh); eye(L, x + sw - ex - 4, y + 1, 4, eh); smile(L, x, y, sw, sh); },
   happy:     (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); arch(L, x + ex, y + 2, 4); arch(L, x + sw - ex - 4, y + 2, 4); const my = y + sh - 2; L.setFx(x + sw / 2 - 3, my, TEAL[1]); L.setFx(x + sw / 2 + 2, my, TEAL[1]); fxRect(L, x + sw / 2 - 2, my + 1, x + sw / 2 + 1, my + 1, TEAL[1]); },
   thinking:  (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); eye(L, x + ex, y + 2, 4, sh - 4); eye(L, x + sw - ex - 4, y + 1, 4, sh - 3); fxRect(L, x + sw / 2 - 2, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[2]); L.setFx(x + sw - 2, y + 1, TEAL[2]); L.setFx(x + sw - 1, y, TEAL[2]); },
   sad:       (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); eye(L, x + ex, y + 2, 4, sh - 4); eye(L, x + sw - ex - 4, y + 2, 4, sh - 4); fxRect(L, x + ex + 1, y + 2, x + ex + 3, y + 2, '#0b1f23'); fxRect(L, x + sw - ex - 4, y + 2, x + sw - ex - 2, y + 2, '#0b1f23'); const my = y + sh - 2; fxRect(L, x + sw / 2 - 1, my, x + sw / 2, my, TEAL[2]); L.setFx(x + sw / 2 - 2, my + 1, TEAL[2]); L.setFx(x + sw / 2 + 1, my + 1, TEAL[2]); },
   surprised: (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2) - 1; eye(L, x + ex, y, 5, sh - 2); eye(L, x + sw - ex - 5, y, 5, sh - 2); fxRect(L, x + sw / 2 - 1, y + sh - 2, x + sw / 2, y + sh - 1, TEAL[1]); },
-  blink:     (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); fxRect(L, x + ex, y + 3, x + ex + 3, y + 3, TEAL[1]); fxRect(L, x + sw - ex - 4, y + 3, x + sw - ex - 1, y + 3, TEAL[1]); fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[1]); },
+  // blink interleaves on the resting face, so it keeps the resting smile
+  blink:     (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); fxRect(L, x + ex, y + 3, x + ex + 3, y + 3, TEAL[1]); fxRect(L, x + sw - ex - 4, y + 3, x + sw - ex - 1, y + 3, TEAL[1]); smile(L, x, y, sw, sh); },
   off:       () => {},
   // placeholders added in art-01 (animations note §1); not part of the approved seven
   embarrassed: (L, x, y, sw, sh) => { const ex = Math.floor((sw - 12) / 2); for (const [ox, d] of [[x + ex, 1], [x + sw - ex - 4, -1]]) { const a = d > 0 ? ox : ox + 3, b = d > 0 ? ox + 3 : ox; L.setFx(a, y + 2, TEAL[1]); L.setFx(a + d, y + 3, TEAL[1]); L.setFx(a + 2 * d, y + 3, TEAL[1]); L.setFx(b, y + 4, TEAL[1]); L.setFx(a, y + 4, TEAL[1]); } fxRect(L, x + 1, y + 5, x + 2, y + 5, PINK[1]); fxRect(L, x + sw - 3, y + 5, x + sw - 2, y + 5, PINK[1]); fxRect(L, x + sw / 2 - 1, y + sh - 1, x + sw / 2, y + sh - 1, TEAL[2]); },
@@ -103,15 +115,15 @@ export const FACE_NAMES = [...APPROVED_FACES, 'embarrassed', 'closed', 'squint']
 /** The side-view wrap face: one eye on the screen's front edge. `idle` is the approved one; the rest are placeholders. */
 function sideFace(L, face, dir, fx1, sy0, sh) {
   const ex = fx1 - dir * 2; const ex0 = Math.min(ex, ex + dir), ex1 = Math.max(ex, ex + dir); const near = dir > 0 ? ex0 : ex1, far = dir > 0 ? ex1 : ex0;
-  const mouth = () => L.setFx(far, sy0 + sh - 3, TEAL[2]);
+  const mouth = () => L.setFx(far, sy0 + sh - 1, TEAL[2]);
   switch (face) {
     case 'off': return;
-    case 'idle': fxRect(L, ex0, sy0 + 3, ex1, sy0 + 7, TEAL[1]); L.setFx(near, sy0 + 4, TEAL[0]); mouth(); return;
+    case 'idle': fxRect(L, ex0, sy0 + 3, ex1, sy0 + 7, TEAL[1]); L.setFx(near, sy0 + 4, TEAL[0]); L.setFx(far, sy0 + 9, TEAL[2]); L.setFx(near, sy0 + 9, TEAL[2]); L.setFx(far, sy0 + 8, TEAL[2]); return;
     case 'surprised': fxRect(L, ex0, sy0 + 2, ex1, sy0 + 7, TEAL[1]); L.setFx(near, sy0 + 3, TEAL[0]); return;
     case 'happy': fxRect(L, ex0, sy0 + 4, ex1, sy0 + 4, TEAL[1]); L.setFx(near, sy0 + 5, TEAL[1]); mouth(); return;
     case 'sad': fxRect(L, ex0, sy0 + 5, ex1, sy0 + 7, TEAL[1]); L.setFx(near, sy0 + 6, TEAL[0]); return;
     case 'thinking': fxRect(L, ex0, sy0 + 3, ex1, sy0 + 6, TEAL[1]); L.setFx(far, sy0 + 3, TEAL[0]); return;
-    case 'blink': case 'closed': fxRect(L, ex0, sy0 + 5, ex1, sy0 + 5, face === 'blink' ? TEAL[1] : TEAL[2]); if (face === 'blink') mouth(); return;
+    case 'blink': case 'closed': fxRect(L, ex0, sy0 + 5, ex1, sy0 + 5, face === 'blink' ? TEAL[1] : TEAL[2]); if (face === 'blink') { L.setFx(far, sy0 + 9, TEAL[2]); L.setFx(near, sy0 + 9, TEAL[2]); L.setFx(far, sy0 + 8, TEAL[2]); } return;
     case 'squint': fxRect(L, ex0, sy0 + 4, ex1, sy0 + 5, TEAL[1]); mouth(); return;
     case 'embarrassed': L.setFx(near, sy0 + 4, TEAL[1]); L.setFx(far, sy0 + 5, TEAL[1]); L.setFx(near, sy0 + 6, TEAL[1]); L.setFx(far, sy0 + 7, PINK[1]); return;
     default: throw new Error(`no side face ${face}`);
@@ -124,7 +136,7 @@ function head(L, g, face, ctx) {
   box(L, hx0, g.headY0, hx1, g.headY1, g.headTop, 'metal', 0, 3);
   if (g.domeR) round(L, hx0, g.headY0, hx1, g.headY0 + 2 * g.domeR, g.domeR);
   const py = g.headY0 + g.headTop + Math.floor(g.headF / 2) - 2;
-  for (const x of [hx0 - 2, hx1 + 1]) { L.rect(x, py, x + 1, py + 3, 'dark', (xx, yy) => (yy === py ? 1 : yy === py + 3 ? 3 : 2)); round(L, x, py, x + 1, py + 3, 1); }
+  for (const x of [hx0 - 2, hx1 + 1]) { L.rect(x, py, x + 1, py + 3, g.ear ?? 'dark', (xx, yy) => (yy === py ? 1 : yy === py + 3 ? 3 : 2)); round(L, x, py, x + 1, py + 3, 1); }
   if (face !== null) {
     const sx0 = cx - g.screenW / 2, sx1 = sx0 + g.screenW - 1;
     const sy0 = g.headY0 + g.headTop + Math.floor((g.headF - g.screenH) / 2), sy1 = sy0 + g.screenH - 1;
@@ -132,9 +144,12 @@ function head(L, g, face, ctx) {
     L.rect(sx0, sy0, sx1, sy1, 'screen', (x, y) => (y === sy0 && x < sx1 - 1 ? 1 : x === sx0 ? 1 : 2)); round(L, sx0, sy0, sx1, sy1, 1);
     for (const [x, y] of [[sx0, sy0], [sx1, sy0], [sx0, sy1], [sx1, sy1]]) L.set(x, y, 'dark', 4);
     ctx.screen = { x: sx0, y: sy0, w: g.screenW, h: g.screenH };
-    if (ctx.mode === 'approved' || ctx.drawFace) FACES[face](L, sx0, sy0, g.screenW, g.screenH);
+    if (ctx.mode === 'approved' || ctx.drawFace) {
+      const band = Math.min(8, g.screenH), oy = Math.floor((g.screenH - band) / 2);
+      FACES[face](L, sx0, sy0 + oy, g.screenW, band);
+    }
   } else {
-    const vy = g.headY0 + g.headTop + (ctx.fix?.vent ? -4 : 4);
+    const vy = g.headY0 + g.headTop + (g.vent ? -4 : 4);
     for (let i = 0; i < 3; i++) L.rect(cx - 3, vy + i * 2, cx + 2, vy + i * 2, 'dark', 3);
     L.rect(hx0 + 3, g.headY1 - 3, hx1 - 3, g.headY1 - 3, 'metal', 3);
   }
@@ -173,7 +188,7 @@ function body(L, g, front, pose, ctx) {
     const up = (d < 0 ? pose.handA : pose.handB) ?? 0;
     const hy = g.torY1 - 1 + g.armDrop - up;
     L.rect(a0, sy + 2, a1, hy - 1, 'metal', (x) => (x === a0 ? 1 : 3));
-    hand(L, d < 0 ? a0 - 1 : a0, hy);
+    hand(L, d < 0 ? a0 - 1 : a0, hy, g.hand);
   }
   const lw = 3, gap = 2;
   const l0 = cx - gap / 2 - lw, r0 = cx + gap / 2;
@@ -222,7 +237,7 @@ function sideView(p, dir, face, pose, ctx) {
   L.rect(nl0, g.legY0, nl1, g.legY1 - lA, 'metal', (x) => (x === (dir > 0 ? nl0 : nl1) ? 1 : x === (dir > 0 ? nl1 : nl0) ? 3 : 2)); L.rect(nl0, g.legY0, nl1, g.legY0, 'dark', 3);
   ring(L, nf0, g.footY0 - lA, nf1, g.footY1 - lA); box(L, nf0, g.footY0 - lA, nf1, g.footY1 - lA, g.foot - 1, 'dark', 0, 1);
   // near arm
-  const back = ctx.fix?.sideArm ? 1 : 0; const sw = pose.armDx ?? 0;
+  const back = g.sideArm ? 1 : 0; const sw = pose.armDx ?? 0;
   const [sx0, sx1] = span(F(-3 - back), F(-2 - back));
   const [ax0, ax1] = span(F(-3 - back + sw), F(-2 - back + sw)); const sy = g.torY0 + 1;
   const [hx0h, hx1h] = span(F(-4 - back + sw), F(-2 - back + sw));
@@ -234,7 +249,7 @@ function sideView(p, dir, face, pose, ctx) {
   const mid = sy + 2 + Math.floor((hy - sy - 2) / 2);
   L.rect(sx0, sy + 2, sx1, mid - 1, 'metal', (x) => (x === (dir > 0 ? sx0 : sx1) ? 1 : 3));
   L.rect(ax0, mid, ax1, hy - 1, 'metal', (x) => (x === (dir > 0 ? ax0 : ax1) ? 1 : 3));
-  hand(L, hx0h, hy);
+  hand(L, hx0h, hy, g.hand);
   // head
   const [hx0, hx1] = span(F(-g.headD / 2), F(g.headD / 2 - 1));
   box(L, hx0, g.headY0, hx1, g.headY1, g.headTop, 'metal', 0, 3);
@@ -245,10 +260,10 @@ function sideView(p, dir, face, pose, ctx) {
   L.rect(scx0, sy0, scx1, sy1, 'screen', (x, y) => (y === sy0 ? 1 : 2));
   for (const [x, y] of [[scx0, sy0 - 1], [scx1, sy0 - 1], [scx0, sy1 + 1], [scx1, sy1 + 1]]) if (!L.get(x, y)) L.set(x, y, 'metal', 2);
   ctx.screen = { x: scx0, y: sy0, w: scx1 - scx0 + 1, h: g.screenH };
-  if (ctx.mode === 'approved' || ctx.drawFace) sideFace(L, face, dir, fx1, sy0, g.screenH);
+  if (ctx.mode === 'approved' || ctx.drawFace) { const band = Math.min(8, g.screenH); sideFace(L, face, dir, fx1, sy0 + Math.floor((g.screenH - band) / 2) - 2, band); }
   antenna(L, ctx, F(-3), g.headY0 + 4);
   const py = g.headY0 + g.headTop + Math.floor(g.headF / 2) - 2;
-  L.rect(cx - 1, py, cx, py + 3, 'dark', (x, y) => (y === py ? 1 : y === py + 3 ? 3 : 2)); round(L, cx - 1, py, cx, py + 3, 1);
+  L.rect(cx - 1, py, cx, py + 3, g.ear ?? 'dark', (x, y) => (y === py ? 1 : y === py + 3 ? 3 : 2)); round(L, cx - 1, py, cx, py + 3, 1);
   return L;
 }
 
@@ -258,8 +273,8 @@ function sideView(p, dir, face, pose, ctx) {
  *   em      the lit pixels for the _emissive layer, [[x, y, '#rrggbb']…] (empty in 'approved')
  *   screen  where the face goes: { x, y, w, h } (null for N)
  */
-export function draw(dir, { face = 'idle', pose = {}, mode = 'clip', fix = {}, drawFace = false } = {}) {
+export function draw(dir, { face = 'idle', pose = {}, mode = 'clip', fix = {}, drawFace = false, model = O } = {}) {
   const ctx = { mode, fix, em: [], screen: null, drawFace };
-  const L = dir === 'S' ? south(O, face, pose, ctx) : dir === 'N' ? north(O, pose, ctx) : sideView(O, dir === 'E' ? 1 : -1, face, pose, ctx);
+  const L = dir === 'S' ? south(model, face, pose, ctx) : dir === 'N' ? north(model, pose, ctx) : sideView(model, dir === 'E' ? 1 : -1, face, pose, ctx);
   return { rows: L.render(), em: ctx.em, screen: ctx.screen };
 }

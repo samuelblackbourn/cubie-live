@@ -2,11 +2,13 @@
 // the face overlay sheets, the emissive layers and the clip JSON — all drawn from
 // model O in model.mjs. PixelLab makes the canonical sheets in P3.
 //
-//   node art/src/cubie/build.mjs <out-dir> [--pass 1|2]
+//   node art/src/cubie/build.mjs <out-dir>
 //
 // Before writing anything it checks that model.mjs, in 'approved' mode at rest,
-// still reproduces art/reference/cubie/ byte for byte; if not, it stops.
-// --pass 1 is the first build; --pass 2 adds the look-and-fix changes (see PASSES).
+// still reproduces art/reference/cubie/ byte for byte; if not, it stops (rerun
+// turnaround.mjs after an approved change to the model).
+// art/cubie/pass1 and pass2 are the look-and-fix passes of the first head, kept
+// for the record; this script now builds only the current model.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,9 +19,8 @@ import { APPROVED_FACES, FACE_NAMES, PINK, TEAL, W, H, draw } from './model.mjs'
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../../..');
 const args = process.argv.slice(2);
-const out = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--pass');
-const pass = Number(args.includes('--pass') ? args[args.indexOf('--pass') + 1] : 2);
-if (!out) { console.error('usage: node art/src/cubie/build.mjs <out-dir> [--pass 1|2]'); process.exit(2); }
+const out = args.find((a) => !a.startsWith('--'));
+if (!out) { console.error('usage: node art/src/cubie/build.mjs <out-dir>'); process.exit(2); }
 
 const DIRS = ['S', 'W', 'E', 'N'];
 const toImg = (rows) => { const img = sheet(W, H); paint(img, rows); return img; };
@@ -34,20 +35,13 @@ const toImg = (rows) => { const img = sheet(W, H); paint(img, rows); return img;
   console.log('model O reproduces art/reference/cubie/ byte for byte (4 facings, 7 faces)');
 }
 
-// ── 2. what each pass changes ───────────────────────────────────────────────
-// feet(f) → { dxA, dxB }: how far each foot is moved along the facing (E/W only)
-const mirrored = (s) => (f) => ({ dxA: s[f], dxB: -s[f] });
+// ── 2. the stride ───────────────────────────────────────────────────────────
+// feet(f) → { dxA, dxB }: how far each foot moves along the facing (E/W only).
 // At rest the near foot already stands 3 px ahead of the far one, so a mirrored
-// stride is lopsided. `spread` is the near-minus-far distance wanted per frame,
-// split so both feet stay centred under the body.
-const spread = (sep) => (f) => { const dxA = Math.ceil((sep[f] - 3) / 2); return { dxA, dxB: dxA - (sep[f] - 3) }; };
-const PASSES = {
-  1: { fix: {}, feet: mirrored([1, 2, 1, 0, -1, -2, -1, 0]) },
-  // pass 2: the brief's two weak spots (side near arm one column back, back vent
-  // higher), and a symmetric side stride (pass 1's feet overlapped: a shuffle)
-  2: { fix: { sideArm: true, vent: true }, feet: spread([4, 6, 4, 0, -4, -6, -4, 0]) },
-};
-const { fix, feet } = PASSES[pass];
+// stride is lopsided (pass 1 shuffled). `sep` is the near-minus-far distance per
+// frame, split so both feet stay centred under the body.
+const sep = [4, 6, 4, 0, -4, -6, -4, 0];
+const feet = (f) => { const dxA = Math.ceil((sep[f] - 3) / 2); return { dxA, dxB: dxA - (sep[f] - 3) }; };
 
 // ── 3. the clips ────────────────────────────────────────────────────────────
 // walk: contact on f1 (foot A lands) and f5 (foot B lands); body dips the frame
@@ -72,7 +66,7 @@ for (const [clip, c] of Object.entries(CLIPS)) {
   const base = blank(W * n, H * DIRS.length); const em = blank(W * n, H * DIRS.length);
   const anchors = Object.fromEntries(DIRS.map((d) => [d, d === 'N' ? null : []]));
   DIRS.forEach((d, r) => c.poses.forEach((pose, f) => {
-    const { rows, em: lit, screen } = draw(d, { pose, fix, face: 'off' });
+    const { rows, em: lit, screen } = draw(d, { pose, face: 'off' });
     paint(base, rows, f * W, r * H);
     paint(em, Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => lit.find((p) => p[0] === x && p[1] === y)?.[2] ?? null)), f * W, r * H);
     if (d !== 'N') anchors[d].push([screen.x, screen.y]);
@@ -91,7 +85,7 @@ const sizes = {};
 for (const [d, file] of Object.entries(cells)) {
   let img = null, eimg = null;
   FACE_NAMES.forEach((name, i) => {
-    const { rows, screen } = draw(d, { fix, face: name, drawFace: true });
+    const { rows, screen } = draw(d, { face: name, drawFace: true });
     if (!img) { sizes[d] = [screen.w, screen.h]; img = blank(screen.w * FACE_NAMES.length, screen.h); eimg = blank(screen.w * FACE_NAMES.length, screen.h); }
     const cell = rows.slice(screen.y, screen.y + screen.h).map((row) => row.slice(screen.x, screen.x + screen.w));
     paint(img, cell, i * screen.w, 0);
@@ -100,4 +94,4 @@ for (const [d, file] of Object.entries(cells)) {
   writePng(path.join(out, file), img); writePng(path.join(out, file.replace('.png', '_emissive.png')), eimg);
 }
 fs.writeFileSync(path.join(out, 'faces.json'), `${JSON.stringify({ size: sizes.S, names: FACE_NAMES, approved: APPROVED_FACES, placeholder: FACE_NAMES.filter((f) => !APPROVED_FACES.includes(f)), cells: Object.fromEntries(Object.entries(cells).map(([d, file]) => [d, { file, size: sizes[d] }])) }, null, 1)}\n`);
-console.log(`faces: ${FACE_NAMES.length} × S ${sizes.S.join('×')}, E/W ${sizes.E.join('×')}; pass ${pass}${Object.keys(fix).length ? ` (fixes: ${Object.keys(fix).join(', ')})` : ''}`);
+console.log(`faces: ${FACE_NAMES.length} × S ${sizes.S.join('×')}, E/W ${sizes.E.join('×')}`);
