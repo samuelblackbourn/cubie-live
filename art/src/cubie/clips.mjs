@@ -72,7 +72,7 @@ const action = ({ dirs = ALL, fps, loop, contact, held, keys, face }) => {
   });
   const angleOf = (fr) => { const k = keys[fr.f]; const side = fr.d === 'E' || fr.d === 'W'; const K = side ? k.side : k.front; return { ang: K.ang, behind: K.behind }; };
   return { dirs, fps, loop, contact, face, poses: posesFor,
-    ...(held ? { overlays: Object.fromEntries([held].flat().map((h) => [`held.${h}`, (fr) => { const { ang, behind } = angleOf(fr); if (ang === undefined || ang === null) return []; return tool(fr, h, fr.d === 'N' ? 180 - ang : ang, { behind }); }])) } : {}) };
+    ...(held ? { overlays: Object.fromEntries([held].flat().map((h) => [`held.${h}`, (fr) => { const { ang, behind } = angleOf(fr); if (ang === undefined || ang === null) return []; return tool(fr, h, ang, { behind }); }])) } : {}) };
 };
 // the load he tips into the converter: a green bundle of cuttings between his hands
 const load = (fr) => {

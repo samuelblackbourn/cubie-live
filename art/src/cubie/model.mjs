@@ -21,7 +21,8 @@
 //   arm        E/W: near hand moved { dx: forward px, dy: up px }
 //   at         { A: [x, y], B: [x, y] } — put the hand nub(s) at these pixels (S/N: A, B;
 //              E/W: A is the near hand); the arm is worked out from the shoulder
-//   armsFront  draw the arms after the head (hands in front of the screen); build.mjs
+//   armsFront  draw the arms after the head (hands in front of the screen; ignored from
+//              behind, where such arms are on his far side); build.mjs
 //              moves them onto a front.arms overlay so the face overlay can't cover them
 //   hideArms   leave the posed arms out (used to split them onto that overlay)
 //   bodyDx     S/N: torso, arms and head shifted sideways (weight shift); feet stay
@@ -213,6 +214,7 @@ function nubAt(L, x, y, up) { const y0 = up ? y - 2 : y; for (let i = 0; i < 3; 
 // ---- body, S and N -----------------------------------------------------------
 function body(L, g, front, pose, ctx) {
   const cx = g.cx + (pose.bodyDx ?? 0);
+  if (!front && (pose.armA || pose.armB || pose.at)) frontArms(L, g, pose, ctx, cx); // far-side arms first (see below)
   L.rect(cx - 2, g.neckY0, cx + 1, g.neckY1, 'dark', 3);
   const tx0 = cx - g.torsoW / 2, tx1 = cx + g.torsoW / 2 - 1;
   box(L, tx0, g.torY0, tx1, g.torY1, g.torsoTop, 'metal', 0, 2);
@@ -229,8 +231,11 @@ function body(L, g, front, pose, ctx) {
     glow(L, ctx, cx + 1, by0 + 2, PINK[1], OFF.led);
   }
   ctx.torso = { x0: tx0, y0: g.torY0, x1: tx1, y1: g.torY1 };
-  ctx.hands = {};
-  if (!pose.armsFront) frontArms(L, g, pose, ctx, cx);
+  ctx.hands = ctx.hands ?? {};
+  // from behind, arms reaching forward are on the far side of him: drawn first, the torso
+  // and battery pack go over them (only hands past his sides show)
+  const posed = pose.armA || pose.armB || pose.at;
+  if (!(posed && !front) && !pose.armsFront) frontArms(L, g, pose, ctx, cx);
   const lw = 3, gap = 2;
   const l0 = g.cx - gap / 2 - lw, r0 = g.cx + gap / 2;
   for (const [x, lift] of [[l0, pose.liftA ?? 0], [r0, pose.liftB ?? 0]]) {
@@ -283,7 +288,7 @@ function north(p, pose, ctx, face = 'idle') {
   body(L, g, false, pose, ctx);
   const h = headG(g, pose);
   turnedHead(L, g, pose, ctx, 'N', face, h.cx);
-  if (pose.armsFront) frontArms(L, g, pose, ctx, g.cx + (pose.bodyDx ?? 0));
+  // (from behind, raised or reaching arms are on his far side: never drawn over the head)
   if (pose.dots) dots(L, g, pose.dots, h.cx - 10);
   return L;
 }
@@ -389,7 +394,7 @@ function sideView(p, dir, face, pose, ctx) {
  *   screen  where the face goes: { x, y, w, h } (null for N)
  */
 export function draw(dir, { face = 'idle', pose = {}, mode = 'clip', fix = {}, drawFace = false, model = O } = {}) {
-  const ctx = { mode, fix, em: [], screen: null, drawFace, antDx: pose.antennaDx ?? 0, antLift: pose.antennaLift ?? 0 };
+  const ctx = { mode, fix, em: [], screen: null, hands: {}, drawFace, antDx: pose.antennaDx ?? 0, antLift: pose.antennaLift ?? 0 };
   const L = dir === 'S' ? south(model, face, pose, ctx) : dir === 'N' ? north(model, pose, ctx, face) : sideView(model, dir === 'E' ? 1 : -1, face, pose, ctx);
   const gl = layout(model, pose);
   let rows = L.render(), em = ctx.em, screen = ctx.screen, hands = ctx.hands, torso = ctx.torso; let headTop = gl.headY0;

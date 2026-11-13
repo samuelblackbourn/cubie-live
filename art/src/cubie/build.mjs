@@ -52,7 +52,7 @@ for (const [clip, c] of Object.entries(CLIPS)) {
   const grid = (list) => Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => list.find((p) => p[0] === x && p[1] === y)?.[2] ?? null));
   dirs.forEach((d, r) => posesFor(d).forEach((pose, f) => {
     let fr = draw(d, { pose, face: 'off' });
-    if (pose.armsFront) { // arms in front of the head go on the front.arms overlay, above the face
+    if (pose.armsFront && d !== 'N') { // arms in front of the head go on the front.arms overlay, above the face
       const bare = draw(d, { pose: { ...pose, hideArms: true }, face: 'off' });
       const arms = []; fr.rows.forEach((row, y) => row.forEach((c, x) => { if (c && c !== bare.rows[y][x]) arms.push([x, y, c]); }));
       (frontArms[`${d}`] ??= [])[f] = arms;

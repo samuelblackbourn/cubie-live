@@ -25,11 +25,14 @@ const SHAPES = {
 
 /**
  * Pixels of a tool held at the frame's hand, pointing `angle` (screen degrees; for
- * E/W pass the angle as if facing E — it is mirrored for W). Returns [[x, y, colour, false]…].
+ * E/W pass the angle as if facing E, for S/N as seen from the S). W and N are mirror
+ * views, so the angle and the head's sides are both mirrored there (mirroring only the
+ * angle left the axe blade facing backwards). Returns [[x, y, colour, false]…].
  */
 export function tool(fr, kind, angle, { behind = false, hand = 'A' } = {}) {
   const h = fr.hands?.[hand]; if (!h) return [];
-  const a = norm(fr.d === 'W' ? 180 - angle : angle); const [ux, uy] = DIR[a]; const [vx, vy] = [-uy, ux];
+  const mirror = fr.d === 'W' || fr.d === 'N';
+  const a = norm(mirror ? 180 - angle : angle); const [ux, uy] = DIR[a]; const [vx, vy] = mirror ? [uy, -ux] : [-uy, ux];
   const L = new Layer(32, 48, RAMPS, OUT); const S = SHAPES[kind];
   for (let i = 0; i <= S.haft; i++) L.set(h.x + ux * (i - 1), h.y + uy * (i - 1), 'wood', i < 2 ? 3 : 2);
   const tx = h.x + ux * S.haft, ty = h.y + uy * S.haft;
