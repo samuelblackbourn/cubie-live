@@ -11,12 +11,20 @@
  *                           anchors: { face: { S: [[x,y]…count], W: …, E: …, N: null } } }
  *   <clip>_emissive.png   optional; same size; only glowing pixels (eyes and mouth
  *                         live on the face overlay, so here: strip, antenna, charge LED)
- *   <clip>.<overlay>.png  optional overlays (held tool, back pack); same size and frames
+ *   <clip>.<layer>.<name>.png  optional overlays, layer = tint | held | back | status | front (held.axe,
+ *                         back.battery_pack, status.wet, front.arms = arms passing in front of
+ *                         the face, drawn above it); same size and frames as the clip,
+ *                         drawn above the body with occlusion already baked in. Draw order:
+ *                         body, its _emissive, face (+ glow), then each overlay in the
+ *                         order tint (recolours the body), back, held, status, front — an overlay hides the glow
+ *                         under it and adds its own _emissive
  * and once for the folder:
  *   faces.json            { size: [w, h], names: [...], cells?: { S: {file, size}, E: …, W: … } }
  *                         one sheet per direction that shows a face, one face per cell
  *                         left→right, each with a <sheet>_emissive.png (eyes, mouth)
  *   <clip>.json may also carry face: [null | name, …] — a face forced on that frame (the blink)
+ *   anchors.face[dir][frame] is [x, y] (the face on that facing's own head), [x, y, kind]
+ *   (on a head turned to `kind`, e.g. a side head on a front body), or null (back of the head)
  *
  * Errors (would break the renderer): bad JSON, wrong sheet size, empty frames,
  * half-transparent pixels, off-palette colours, emissive pixels with no body
@@ -122,13 +130,15 @@ export function checkPack(dir, { only } = {}) {
         const cell = inspect(img, f * FRAME.w, row * FRAME.h, FRAME.w, FRAME.h); const where = `${d} f${f}`;
         if (!cell.box) { E(`${where} is empty`); continue; }
         heights.push(cell.box.maxY - cell.box.minY + 1);
-        if (cell.box.maxY !== FRAME.h - 1 && !AIRBORNE.test(clip)) Wn(`${where}: lowest pixel on row ${cell.box.maxY}, not ${FRAME.h - 1} — he will hover`);
+        if (cell.box.maxY !== FRAME.h - 1 && !AIRBORNE.test(clip) && !j.airborne) Wn(`${where}: lowest pixel on row ${cell.box.maxY}, not ${FRAME.h - 1} — he will hover`);
         const cx = (cell.box.minX + cell.box.maxX) / 2; if (Math.abs(cx - 15.5) > 3) Wn(`${where}: body centred on x=${cx}, more than 3 px off 15.5`);
         const a = faceAnch?.[d];
         if (faceAnch && a !== null && a !== undefined) {
           const p = a[f];
+          if (p === null) continue; // the back of the head is turned to us on this frame
           if (!Array.isArray(p)) { E(`${where}: no face anchor`); continue; }
-          const [fx, fy] = p; const [w, h] = faceSize(d);
+          const [fx, fy, kind] = p; const [w, h] = faceSize(kind ?? d);
+          if (kind && faces && !(faces.cells ?? {})[kind]) E(`${where}: face anchor names head ${kind}, which faces.json has no cells for`);
           if (fx < 0 || fy < 0 || fx + w > FRAME.w || fy + h > FRAME.h) E(`${where}: face at ${fx},${fy} (${w}×${h}) leaves the frame`);
           else {
             const box = crop(img, f * FRAME.w + fx, row * FRAME.h + fy, w, h); let holes = 0;
@@ -138,7 +148,7 @@ export function checkPack(dir, { only } = {}) {
         }
       }
       if (faceAnch && Array.isArray(faceAnch[d]) && faceAnch[d].length !== j.count) E(`${d}: ${faceAnch[d].length} face anchors for ${j.count} frames`);
-      if (heights.length) { const s = Math.max(...heights) - Math.min(...heights); if (s > 2) Wn(`${d}: height varies by ${s} px across frames (bob is 1 px)`); }
+      if (heights.length && j.loop) { const s = Math.max(...heights) - Math.min(...heights); if (s > 2) Wn(`${d}: height varies by ${s} px across frames in a loop (bob is 1 px)`); }
     });
 
     // emissive and overlays
@@ -154,7 +164,8 @@ export function checkPack(dir, { only } = {}) {
         summary.push(`${clip}: emissive ${n} px`);
       }
     } else Wn(`no ${clip}_emissive.png (strip, antenna bobble and charge LED glow from it)`);
-    for (const f of files.filter((x) => x.startsWith(`${clip}.`) && x.endsWith('.png') && x !== `${clip}.png`)) {
+    const overlayRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(tint|held|back|status|front)\\.[a-z0-9_]+(_emissive)?\\.png$`);
+    for (const f of files.filter((x) => overlayRe.test(x))) {
       const o = readPng(path.join(dir, f));
       if (o.width !== img.width || o.height !== img.height) E(`overlay ${f} is ${o.width}×${o.height}, expected ${img.width}×${img.height}`);
       else summary.push(`${clip}: overlay ${f}`);

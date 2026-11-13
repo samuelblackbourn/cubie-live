@@ -13,7 +13,17 @@
   "off",
   "embarrassed",
   "closed",
-  "squint"
+  "squint",
+  "tired",
+  "very_tired",
+  "loading_0",
+  "loading_1",
+  "loading_2",
+  "loading_3",
+  "roll_ul",
+  "roll_u",
+  "roll_ur",
+  "unimpressed"
  ],
  "approved": [
   "idle",
@@ -24,10 +34,20 @@
   "blink",
   "off"
  ],
- "placeholder": [
+ "reviewed": [
   "embarrassed",
   "closed",
-  "squint"
+  "squint",
+  "tired",
+  "very_tired",
+  "loading_0",
+  "loading_1",
+  "loading_2",
+  "loading_3",
+  "roll_ul",
+  "roll_u",
+  "roll_ur",
+  "unimpressed"
  ],
  "cells": {
   "S": {
