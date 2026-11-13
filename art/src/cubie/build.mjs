@@ -108,5 +108,5 @@ for (const [d, file] of Object.entries(cells)) {
   });
   writePng(path.join(out, file), img); writePng(path.join(out, file.replace('.png', '_emissive.png')), eimg);
 }
-fs.writeFileSync(path.join(out, 'faces.json'), `${JSON.stringify({ size: sizes.S, names: FACE_NAMES, approved: APPROVED_FACES, placeholder: FACE_NAMES.filter((f) => !APPROVED_FACES.includes(f)), cells: Object.fromEntries(Object.entries(cells).map(([d, file]) => [d, { file, size: sizes[d] }])) }, null, 1)}\n`);
+fs.writeFileSync(path.join(out, 'faces.json'), `${JSON.stringify({ size: sizes.S, names: FACE_NAMES, approved: APPROVED_FACES, reviewed: FACE_NAMES.filter((f) => !APPROVED_FACES.includes(f)), cells: Object.fromEntries(Object.entries(cells).map(([d, file]) => [d, { file, size: sizes[d] }])) }, null, 1)}\n`);
 console.log(`faces: ${FACE_NAMES.length} × S ${sizes.S.join('×')}, E/W ${sizes.E.join('×')}`);

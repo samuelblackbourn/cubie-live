@@ -5,7 +5,7 @@ renderer, the sprite sheets and the sound matrix all key off. Companion to
 [[Virtual-Office/Design-Cubie-Assets]] (§9 had a first sketch), the art system
 ([[Virtual-Office/Design-Cubie-Art-System]] §6 sets the frame budgets) and the action
 list ([[Virtual-Office/Design-Cubie-Items]] §4). Written 2026-11-13. **Status:
-definition, nothing drawn.** Becomes `art/cubie/animations.json` in P3.
+the P3 base set is drawn and final (see the 2026-11-13 addendum at the end).**
 
 ## 0. How animation works here
 
@@ -226,3 +226,109 @@ Each actor: `idle` 4, `move` 6 (walk/waddle/fly/swim/burrow), `job` 6 (fetch/
 scout/carry/dig), `react` 4 (startle/flee/curious), `sleep` 2, and a species
 `call` sound. The duck adds `fall` 6 and `get_up` 6 — the whole joke. Tamed
 animals add `follow` (a move variant with the head toward him) and `beg` 4.
+
+## Addendum — 2026-11-13: as built (art-02, the base set, final)
+
+Cubie's base set is drawn in code and is **final** (ruling 60: no PixelLab for
+Cubie). Sheets in `art/cubie/`, rows in `art/manifests/cubie.yaml`, all built by
+`art/src/cubie/build.mjs` from `model.mjs` (model O, revision 2), clip data in
+`clips.mjs`, tools in `tools.mjs`, packs and wet in `wear.mjs`. Where this
+addendum and the tables above disagree, this is what exists.
+
+**Changes to §0.**
+- The face cell is **18×11** (S) and 4×11 (E/W), not 16×12. A clip's
+  `anchors.face[dir][frame]` is `[x, y]`, `[x, y, kind]` (a turned head — use that
+  facing's face cell) or `null` (back of the head).
+- Layer order the renderer draws: body → body glow → face → **tint** (recolours the
+  body: `tint.wet`) → back → held → status → front (`front.arms`: arms raised in
+  front of the face) → emissive. Occlusion is baked: back overlays are pre-masked by
+  the body except from behind (N), where they draw over him.
+- A clip's json lists `worn` overlays: shown only when state says so —
+  `back.battery_pack`, `back.cargo_frame`, `tint.wet` + `status.wet` on every clip,
+  and `held.axe|pick|shovel` on `idle`/`walk` (a carried tool). Every other overlay
+  always rides its clip. Action clips that offer several tools (`swing.heavy`: axe,
+  pick) show the one in `held`.
+- Static and emote clips drawn S-only or S+N (the renderer turns him to the nearest):
+  see the dirs column below. `airborne: true` marks clips whose silhouette leaves the
+  ground (the bounce).
+
+**Faces (20).** The approved seven (`idle` now with a slight smile, `happy`,
+`thinking`, `sad`, `surprised`, `blink`, `off`) plus `embarrassed`, `closed`,
+`squint`, `tired`, `very_tired`, `loading_0..3` (a loading wheel in each eye, 4
+frames), `roll_ul`, `roll_u`, `roll_ur`, `unimpressed` (the eye-roll). A clip's
+`face` array forces a face per frame; `null` = the mood/event face.
+
+**Clips (43).** dirs · frames · fps · loop · contact · overlays that always ride:
+
+| clip | dirs | frames | fps | loop | contact | overlays |
+| --- | --- | --- | --- | --- | --- | --- |
+| `idle` | SWEN | 4 | 4 | yes | — | — |
+| `walk` | SWEN | 8 | 10 | yes | 1, 5 | — |
+| `build` | SWEN | 6 | 7 | yes | 4 | front.arms, held.hammer |
+| `build.complete` | SWEN | 6 | 6 | once | 3 | front.arms |
+| `celebrate` | SWEN | 6 | 8 | once | — | front.arms |
+| `convert` | S | 6 | 6 | once | 3 | front.arms, held.load |
+| `dig` | SWEN | 6 | 7 | once | 4 | front.arms, held.shovel |
+| `discover` | SWEN | 6 | 6 | once | — | status.bang |
+| `drop` | SWEN | 4 | 8 | once | 2 | — |
+| `eat` | SWEN | 4 | 5 | once | 2 | front.arms, front.berry |
+| `enter` | SWEN | 4 | 8 | once | — | — |
+| `exit` | SWEN | 4 | 8 | once | — | — |
+| `idle.fidget` | SN | 6 | 6 | once | — | — |
+| `idle.fidget.antenna` | SN | 6 | 6 | once | — | — |
+| `idle.fidget.bounce` | SN | 8 | 8 | once | — | — |
+| `idle.fidget.sway` | SN | 8 | 5 | once | — | — |
+| `idle.fidget.wipe` | S | 8 | 6 | once | — | front.arms |
+| `idle.look_around` | SWEN | 6 | 5 | once | — | — |
+| `paddle` | SWEN | 8 | 6 | yes | 2, 6 | held.paddle |
+| `pick_up` | SWEN | 4 | 8 | once | 3 | — |
+| `place_footprint` | SWEN | 4 | 6 | once | 3 | front.arms |
+| `pluck` | SWEN | 4 | 8 | once | 3 | — |
+| `pull` | SWEN | 8 | 8 | yes | 1, 5 | — |
+| `recharge` | S | 4 | 3 | yes | — | status.bolts |
+| `recharge.wake` | S | 7 | 6 | once | — | front.arms |
+| `row` | SWEN | 6 | 5 | yes | 3 | held.oars |
+| `shuffle` | SWEN | 6 | 4 | yes | 1, 4 | status.battery |
+| `sit` | SN | 2 | 2 | yes | — | — |
+| `sit.transition` | SN | 2 | 8 | once | — | — |
+| `sulk` | S | 4 | 3 | yes | — | — |
+| `sulk.eyeroll` | S | 6 | 5 | once | — | — |
+| `swing.heavy` | SWEN | 6 | 8 | once | 4 | front.arms, held.axe, held.pick |
+| `swing.light` | SWEN | 6 | 10 | once | 3 | held.sickle |
+| `think` | SWEN | 4 | 3 | yes | — | status.query |
+| `think.eureka` | SWEN | 6 | 8 | once | — | front.arms, status.bulb |
+| `think.loading` | SWEN | 4 | 8 | yes | — | — |
+| `wade` | SWEN | 8 | 7 | yes | 1, 5 | — |
+| `walk.carry` | SWEN | 8 | 9 | yes | 1, 5 | back.bundle |
+| `walk.slope_down` | SWEN | 8 | 11 | yes | 1, 5 | — |
+| `walk.slope_up` | SWEN | 8 | 8 | yes | 1, 5 | — |
+| `walk.tired` | SWEN | 8 | 7 | yes | 1, 5 | — |
+| `workbench` | S | 6 | 5 | yes | 3 | status.sparks |
+| `write` | S | 4 | 3 | yes | — | held.notebook |
+
+Notes on the new rows: `idle.look_around` turns only his head (front → each profile
+and back). Five fidgets — weight-shift tap, sway, bounce, antenna wobble, screen wipe
+(`idle.fidget*`) — for the renderer to pick at random when he idles a while.
+`recharge` floats small lightning bolts up like sleeping Zs; `recharge.wake` holds
+the stretch with arms up. `walk.tired` (face `tired`) for power "a bit low";
+`shuffle` (face `very_tired`, a blinking low-battery icon) for low-power mode.
+`row` holds an oar in each hand; `paddle` is one paddle that changes sides.
+`think` = a bobbing "?" over the idle face; `think.loading` = loading wheels in his
+eyes; `think.eureka` = a raised hand and a lightbulb. `sulk.eyeroll` (S, once) rolls
+his eyes and settles unimpressed. In `swing.heavy` the raised tool draws over his
+head on the wind-up frames.
+
+**Overlays.** Held tools: axe, pick, shovel, hammer, sickle, paddle, oar (drawn per
+frame from the hand anchor). Back: battery pack (dark metal box, three teal charge
+bars that glow, seen from behind; shoulder straps from the front), cargo frame (two
+wooden posts rising above his head, a strapped sack), bundle (`walk.carry`). Wet:
+`tint.wet` turns his metal two steps darker and cooler (the brightest step stays as
+the sheen); `status.wet` drops 4-px drips from under his head and body on frames 2
+and 6 of each 8, falling on 3 and 7.
+
+**Still open.** The untrimmed atlas of the full set is 4096² (the worn overlays are
+mostly empty frames) — the renderer should load worn overlays on demand or the
+atlas script should trim empty frames before P2 ships. Arms on `front.arms` are not
+darkened when wet. Deferred clips (swim, vehicles, dance, phone, selfie, shiver,
+rain walk, shoo, repair, carry_torch) are added to `clips.mjs` the same way when
+their content lands.
