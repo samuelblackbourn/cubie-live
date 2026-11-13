@@ -33,11 +33,10 @@ Three rules carry over from the rest of the design and shape everything below:
 
 ## 1. Slots
 
-He has a robot body, so gear **bolts on**. Nine slots, each holding one piece,
-except `held` (two hands) and `trinket` (two charms). Torso, arms and belt are one
-**`outfit`** slot (the creator, 2026-11-13: eleven was too many to read at 32 px), so
-an outfit is one piece that may cover his body, his arms, his waist or all three.
-Cosmetics add two **`pin`** spots that hold no stats (§8).
+He has a robot body, so gear **bolts on**. Eleven slots (kept at eleven by the
+creator, 2026-11-13), each holding one piece, except `held` (two hands) and
+`trinket` (two charms). Torso, arms and belt are separate slots that all draw on the
+`outfit` layer. Cosmetics add two **`pin`** spots that hold no stats (§8).
 
 | slot | where on the sprite | layer it draws on | examples |
 | --- | --- | --- | --- |
@@ -45,7 +44,9 @@ Cosmetics add two **`pin`** spots that hold no stats (§8).
 | `antenna` | replaces/caps the antenna bobble | `top` | radio mast, weather vane tip, beacon bulb |
 | `screen` | over or on the screen face | `visor` (new, above face) | visor, night lens, scanner HUD, screen skin |
 | `back` | on his back | `back` (exists) | battery pack, cargo frame, jet pack, glider |
-| `outfit` | on his body, arms and/or waist | `outfit` (new, on the body) | coat, plating, life vest, apron, gauntlets, grapple arm, tool belt |
+| `torso` | over the body | `outfit` (new, on the body, under arms) | coat, plating, life vest, apron |
+| `arms` | over the arm pixels | `outfit` | gauntlets, grapple arm, tool arm |
+| `belt` | a band at the torso's bottom edge | `outfit` | tool belt, pouches, rope coil |
 | `legs` | **replaces or extends his legs** | **body variant** (see §5) | rocket legs, stilts, spring legs, treads |
 | `feet` | over the foot pixels | `outfit` | snowshoes, flippers, mag boots, mud boots |
 | `held` | in his hands | `held` (exists) | Items §2 tools plus held gadgets (§3.8) |
@@ -210,33 +211,32 @@ Visors are drawn in the tint over the screen, with the eyes still showing throug
 | welding_mask | III | speed.build ×1.2 at the bench | blocks reveal | a hinged dark plate (flips up between welds) |
 | screen_skins | — | none | cosmetic, unlocked by firsts | border patterns on the bezel (stripes, stars, a leaf) |
 
-### 3.5 Outfits and armour (the `outfit` slot)
+### 3.5 Torso, arms and belt — outfits and armour
 
-Armour here means protection from the world (§0 rule 2). The "covers" column says
-which part maps the piece draws on (§5); every row is one `outfit` piece, so a
-miner chooses plate armour *or* gauntlets *or* a tool belt, which is the point.
+Armour here means protection from the world (§0 rule 2). All three slots draw on
+the `outfit` layer through the part maps (§5).
 
-| id | covers | tier | ability | cost / downside | look |
+| id | slot | tier | ability | cost / downside | look |
 | --- | --- | --- | --- | --- | --- |
-| ★ apron | body | I | speed.build ×1.1 | — | canvas apron, front pocket |
-| ★ rain_poncho | body, arms | I | protect water 2: no `wet` status in rain | weight 1 | hooded poncho over the shoulders |
-| coat | body, arms | I | cold 2 (Items §2) | weight 1 | patched coat, big buttons |
-| insulation_suit | body, arms, waist | III | cold 4 (tundra gate) | weight 3 | puffy quilted suit |
-| shade_cloak | body, arms | II | heat 2 (desert gate) | weight 1 | pale cloak with a hood |
-| life_vest | body | II | `float` (can't sink; rests in water) | weight 1; bulky | bright float vest |
-| plate_armour | body, arms | III | rockfall 3, fall 2, sting 2 | weight 4 | riveted scrap plates over the body |
-| crystal_armour | body, arms | V | heat 3, cold 3, light 2 (glows) | weight 3; fragile (low durability) | translucent crystal plates, glow on emissive |
-| salt_wrap | body, arms | II | protect salt 4 (coast condition loss halved) | rewrap monthly | waxed cloth bands |
-| bee_suit | body, arms (+ a hood on `top`) | II | sting 5 (hives, smoker work) | weight 1 | mesh hood over the whole head |
-| mud_waders | waist (+ boots on `feet`) | II | mud 3, water 1 (swamp gate, Items §2) | weight 2 | rubbery chest waders |
+| ★ apron | torso | I | speed.build ×1.1 | — | canvas apron, front pocket |
+| ★ rain_poncho | torso | I | protect water 2: no `wet` status in rain | weight 1 | hooded poncho over the shoulders |
+| coat | torso | I | cold 2 (Items §2) | weight 1 | patched coat, big buttons |
+| insulation_suit | torso | III | cold 4 (tundra gate) | weight 3 | puffy quilted suit |
+| shade_cloak | torso | II | heat 2 (desert gate) | weight 1 | pale cloak with a hood |
+| life_vest | torso | II | `float` (can't sink; rests in water) | weight 1; bulky | bright float vest |
+| plate_armour | torso | III | rockfall 3, fall 2, sting 2 | weight 4 | riveted scrap plates over the body |
+| crystal_armour | torso | V | heat 3, cold 3, light 2 (glows) | weight 3; fragile (low durability) | translucent crystal plates, glow on emissive |
+| salt_wrap | torso | II | protect salt 4 (coast condition loss halved) | rewrap monthly | waxed cloth bands |
+| bee_suit | torso (+ a hood on `top`) | II | sting 5 (hives, smoker work) | weight 1 | mesh hood over the whole head |
+| mud_waders | feet (reaches the waist) | II | mud 3, water 1 (swamp gate, Items §2) | weight 2 | rubbery chest waders |
 | gauntlets | arms | II | speed.mine ×1.15, condition loss of held tools halved | weight 1 | thick work gloves over the nubs |
 | grapple_arm | arms | IV | `grapple` 5 tiles | draw 2 per grapple; weight 2 | a hook launcher on one forearm |
 | tool_arm | arms | IV | holds a second tool: two `held` actions without swapping | weight 2 | a jointed extra arm from his shoulder |
 | magnet_arm | arms | III | `pick_up` from 3 tiles; finds buried scrap | weight 1; drags compasses off | a horseshoe magnet on a forearm |
-| ★ tool_belt | waist | I | carry tools +2 (Items §2) | — | belt with loops, a hammer hanging |
-| pouch_belt | waist | I | carry +2 (small items only) | — | three pouches |
-| rope_coil | waist | I | `climb` 1 ledge, `tether` | weight 1 | rope looped on the hip |
-| dynamo_belt | waist | III | regen +0.1 per step while moving | weight 1 | a little geared wheel at the hip |
+| ★ tool_belt | belt | I | carry tools +2 (Items §2) | — | belt with loops, a hammer hanging |
+| pouch_belt | belt | I | carry +2 (small items only) | — | three pouches |
+| rope_coil | belt | I | `climb` 1 ledge, `tether` | weight 1 | rope looped on the hip |
+| dynamo_belt | belt | III | regen +0.1 per step while moving | weight 1 | a little geared wheel at the hip |
 
 ### 3.6 Feet
 
@@ -294,13 +294,13 @@ code builds the list from what he owns and the trip the planner chose.
 | loadout (his to name) | pieces | set bonus |
 | --- | --- | --- |
 | Skyline (long-range explorer) | rocket_legs, solar_backpack, night_lens, compass | 3+: reveal +2 |
-| Deep (miner) | miner_helmet, plate_armour, digger_legs, repair_kit | 3+: rockfall +1, speed.mine ×1.1 |
-| Mule (hauler) | cargo_frame, tread_legs, pouch_belt, boots | 3+: carry +2 |
+| Deep (miner) | miner_helmet, gauntlets, plate_armour, digger_legs | 3+: rockfall +1, speed.mine ×1.1 |
+| Mule (hauler) | cargo_frame, tread_legs, pouch_belt, gauntlets | 3+: carry +2 |
 | Tide (swimmer) | flipper_legs, tank_pack, dive_mask, life_vest | 3+: dive time +25% |
 | Lantern (night walker) | beacon_bulb, night_lens, helmet_light, dynamo_belt | 3+: night move cost −20% |
 | Gardener | sun_hat, apron, watering_can, quiet_slippers | 3+: yield.food ×1.2 |
 | Storm (weather) | rain_poncho, glider_wings, vane_tip, barometer | 3+: no `wet` in storms, glide +2 |
-| Frost | insulation_suit, beanie, snowshoes, compass | 3+: cold +1, tundra night ×1.5 instead of ×2 |
+| Frost | insulation_suit, beanie, snowshoes, tool_belt | 3+: cold +1, tundra night ×1.5 instead of ×2 |
 
 The first time he completes a set: a discovery toast, a Journal entry, and the
 loadout name he gives it.
@@ -312,7 +312,7 @@ definition per piece across every clip. The new slots need three additions:
 
 1. **Part maps from the model.** `draw()` returns, for every pixel, which part it
    belongs to (head, screen, antenna, torso, arm A/B, hand, leg A/B, foot, chest
-   strip). Outfit and feet pieces are then drawn like
+   strip). Torso, arms, belt and feet pieces are then drawn like
    `tint.wet`: recolour or add pixels on that part's pixels in every frame, with no
    per-clip art. This is the single change that makes most of the catalogue cheap.
 2. **Two new overlay layers.** `top` for the head and antenna slots, and `visor` for
@@ -437,7 +437,7 @@ can tilt the survival game.
 ### 8.1 How they work
 
 - **Where they go.** A cosmetic fills a free slot (`head`, `antenna`, `screen`
-  bezel, `outfit`, `feet`, `back`, `held` while idle) or one of the two `pin` spots.
+  bezel, `torso`, `arms`, `belt`, `feet`, `back`, `held` while idle) or one of the two `pin` spots.
   It can also be shown **over a functional piece of the same slot**: he keeps the
   hard hat's protection while wearing the crown's look. One exception: a functional
   piece whose job shows (a lit helmet light, rocket legs, a glider) is never hidden.
@@ -556,34 +556,34 @@ always read.
 | wall_rain | screen bg | faint falling lines | first (first storm) |
 | wall_waves | screen bg | faint waves | season 2 |
 
-**Outfit cosmetics (24)**
+**Outfit cosmetics (24)** — torso unless the slot says otherwise.
 
-| id | covers | look | unlock | colourways |
+| id | slot | look | unlock | colourways |
 | --- | --- | --- | --- | --- |
-| scarf | neck | a long scarf, end flapping in walk | made (loom) | crimson, navy, forest, plum, orange, gold |
-| bandana | neck | a knotted neckerchief | package | crimson, navy, olive |
-| bow_tie | neck | a little bow tie | vote | crimson, plum, rubber |
-| necktie | neck | a tie, a bit too long | letter | navy, crimson |
-| cape | body | a short cape | patron | crimson, plum, navy |
-| hoodie | body, arms | a hoodie, hood down | package | any |
-| overalls | body, waist | dungarees with a front pocket | skill (building L3) | navy, canvas |
-| lab_coat | body, arms | a white coat (canvas), pens in the pocket | first (first electronics bench) | canvas |
-| striped_jumper | body, arms | a jumper with one stripe | made (loom) | any 2 |
-| flower_shirt | body, arms | a loud short-sleeve shirt with flowers | season 2 | orange, forest, plum |
-| tux_front | body | a tuxedo shirt front and lapels | anniversary | rubber |
-| medal_sash | body | a sash with his medals (one per set completed) | set | crimson, navy |
-| hi_vis | body | a reflective vest | first (first build in the rain) | orange |
-| sailor_collar | neck, body | a square sailor collar | first (first raft trip) | navy |
-| knit_vest | body | a knitted tank top | letter | olive, plum, crimson |
-| cardigan | body, arms | a cardigan with buttons | season 3 | leather, forest |
-| float_ring | waist | a striped float ring | package | crimson, orange |
-| tutu | waist | a tutu | first (first dance) | plum, crimson |
-| pocket_watch | waist | a watch chain from a pocket | found (wreck) | brass, gold |
-| raincoat | body, arms | a shiny raincoat | season 3 | orange, navy |
-| apron_floral | body | the apron in a flower print | vote | crimson, forest |
-| poncho_pattern | body, arms | a patterned poncho | package | orange, crimson, olive |
-| backpack_straps | body | just straps with badges on | stream | leather |
-| tool_roll | waist | a canvas tool roll | skill (any L3) | canvas, leather |
+| scarf | torso | a long scarf, end flapping in walk | made (loom) | crimson, navy, forest, plum, orange, gold |
+| bandana | torso | a knotted neckerchief | package | crimson, navy, olive |
+| bow_tie | torso | a little bow tie | vote | crimson, plum, rubber |
+| necktie | torso | a tie, a bit too long | letter | navy, crimson |
+| cape | torso | a short cape | patron | crimson, plum, navy |
+| hoodie | torso | a hoodie, hood down | package | any |
+| overalls | torso | dungarees with a front pocket | skill (building L3) | navy, canvas |
+| lab_coat | torso | a white coat (canvas), pens in the pocket | first (first electronics bench) | canvas |
+| striped_jumper | torso | a jumper with one stripe | made (loom) | any 2 |
+| flower_shirt | torso | a loud short-sleeve shirt with flowers | season 2 | orange, forest, plum |
+| tux_front | torso | a tuxedo shirt front and lapels | anniversary | rubber |
+| medal_sash | torso | a sash with his medals (one per set completed) | set | crimson, navy |
+| hi_vis | torso | a reflective vest | first (first build in the rain) | orange |
+| sailor_collar | torso | a square sailor collar | first (first raft trip) | navy |
+| knit_vest | torso | a knitted tank top | letter | olive, plum, crimson |
+| cardigan | torso | a cardigan with buttons | season 3 | leather, forest |
+| float_ring | belt | a striped float ring | package | crimson, orange |
+| tutu | belt | a tutu | first (first dance) | plum, crimson |
+| pocket_watch | belt | a watch chain from a pocket | found (wreck) | brass, gold |
+| raincoat | torso | a shiny raincoat | season 3 | orange, navy |
+| apron_floral | torso | the apron in a flower print | vote | crimson, forest |
+| poncho_pattern | torso | a patterned poncho | package | orange, crimson, olive |
+| backpack_straps | torso | just straps with badges on | stream | leather |
+| tool_roll | belt | a canvas tool roll | skill (any L3) | canvas, leather |
 
 **Feet (12)**
 
@@ -708,8 +708,8 @@ found items with P3; letters, votes, packages, patrons and the stream with P5.
 
 ## Settled (the creator, 2026-11-13)
 
-1. **Slots:** torso, arms and belt merge into one `outfit` slot (nine slots, plus
-   two cosmetic `pin` spots).
+1. **Slots:** eleven, as proposed (torso, arms and belt stay separate), plus two
+   cosmetic `pin` spots.
 2. **Colour:** a gear palette of twelve ramps, kept apart from Cubie's own colours (§5).
 3. **Leg kits:** 32×64 frames for the tall kits; kits retract for every
    non-locomotion clip.
