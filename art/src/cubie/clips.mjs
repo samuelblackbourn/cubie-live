@@ -28,6 +28,26 @@ const bolt = (stage, fr) => {
   shape.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') { const Y = fr.headTop + dy + y; if (Y >= 0) out.push([fr.cx + dx + x, Y, '#ffd37a']); } }));
   return out;
 };
+// ── overlay drawing ──
+/** A soft rounded box (fabric/sack): outline, lit top-left, shaded bottom-right. */
+const sack = (x0, y0, x1, y1, R = { hi: '#ad9170', mid: '#96785c', lo: '#7a5f49', line: '#3b2d26' }) => {
+  const out = [];
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const corner = (x === x0 || x === x1) && (y === y0 || y === y1); if (corner) continue;
+    const edge = x === x0 || x === x1 || y === y0 || y === y1;
+    out.push([x, y, edge ? R.line : (y === y0 + 1 || x === x0 + 1) ? R.hi : (y >= y1 - 1 || x >= x1 - 1) ? R.lo : R.mid, false]);
+  }
+  return out;
+};
+/** The carried bundle on his back, per facing; `false` keeps it off the emissive layer. */
+const bundle = (fr) => {
+  const t = fr.torso; if (!t) return [];
+  const strap = (px) => px.map((p) => p);
+  if (fr.d === 'N') return strap([...sack(t.x0 - 2, t.y0 - 3, t.x1 + 2, t.y1 - 1), ...Array.from({ length: t.x1 - t.x0 + 3 }, (_, i) => [t.x0 - 1 + i, t.y0 + 3, '#4d5361', false])]);
+  if (fr.d === 'S') return sack(t.x0 - 2, t.y0 - 3, t.x1 + 2, t.y1 - 1);
+  const back = fr.d === 'E' ? t.x0 : t.x1;
+  return fr.d === 'E' ? sack(back - 5, t.y0 - 3, back + 1, t.y1 - 1) : sack(back - 1, t.y0 - 3, back + 5, t.y1 - 1);
+};
 const range = (n, fn) => Array.from({ length: n }, (_, f) => fn(f));
 
 export const CLIPS = {
@@ -56,6 +76,34 @@ export const CLIPS = {
   'idle.fidget.wipe': { dirs: ['S'], fps: 6, loop: false, // polishes his screen with one hand
     poses: [{}, { armA: { dx: -3, dy: 13 }, armsFront: true }, { armA: { dx: -6, dy: 17 }, armsFront: true }, { armA: { dx: -10, dy: 17 }, armsFront: true }, { armA: { dx: -6, dy: 16 }, armsFront: true }, { armA: { dx: -10, dy: 17 }, armsFront: true }, { armA: { dx: -3, dy: 12 }, armsFront: true }, {}],
     face: [null, 'squint', 'squint', 'squint', 'squint', 'squint', 'happy', 'happy'] },
+  // ── group 2: moving ──
+  // heavy load: leans back, both hands up at the straps, the bundle on his back
+  'walk.carry': { dirs: ALL, fps: 9, loop: true, contact: [1, 5],
+    poses: (d) => range(8, (f) => ({ ...walkPose(f), handA: 0, handB: 0, armDx: 0, ...(d === 'E' || d === 'W' ? { lean: -1, arm: { dx: 6, dy: 5 } } : both(-1, 5)) })),
+    overlays: { 'back.bundle': bundle } },
+  // power "a bit low": head lower, arms barely swing
+  'walk.tired': { dirs: ALL, fps: 7, loop: true, contact: [1, 5],
+    poses: range(8, (f) => ({ ...walkPose(f, { sep: [3, 4, 3, 0, -3, -4, -3, 0] }), headDy: 2, handA: 0, handB: 0, armDx: [-1, -1, 0, 0, 1, 1, 0, 0][f] })) },
+  // low power: head hung low, arms dangling, feet dragged (lift 1, short stride), no arm swing
+  shuffle: { dirs: ALL, fps: 4, loop: true, contact: [1, 4],
+    poses: (d) => range(6, (f) => ({ bob: [0, 0, 1, 0, 0, 1][f], headDy: 3, ...(d === 'E' || d === 'W' ? {} : both(0, -1)), ...feet([2, 3, 1, -2, -3, -1], f), liftA: [1, 0, 0, 0, 0, 1][f], liftB: [0, 0, 1, 1, 0, 0][f] })) },
+  // slopes: lean into the hill going up, lean back and arms out a touch coming down
+  'walk.slope_up': { dirs: ALL, fps: 8, loop: true, contact: [1, 5],
+    poses: (d) => range(8, (f) => ({ ...walkPose(f), ...(d === 'E' || d === 'W' ? { lean: 1 } : { headDy: 1 }) })) },
+  'walk.slope_down': { dirs: ALL, fps: 11, loop: true, contact: [1, 5],
+    poses: (d) => range(8, (f) => ({ ...walkPose(f), ...(d === 'E' || d === 'W' ? { lean: -1 } : { ...both(2, 2 + [0, 0, 1, 0, 0, 0, 1, 0][f]) }) })) },
+  // wading: high knees, arms lifted out of the water; the water hides his legs (renderer)
+  wade: { dirs: ALL, fps: 7, loop: true, contact: [1, 5],
+    poses: (d) => range(8, (f) => ({ ...walkPose(f, { sep: [3, 5, 3, 0, -3, -5, -3, 0] }), liftA: [2, 0, 0, 0, 0, 0, 2, 3][f], liftB: [0, 0, 2, 3, 2, 0, 0, 0][f], ...(d === 'E' || d === 'W' ? { arm: { dx: 7, dy: 6 } } : both(2, 4)) })) },
+  // through a door / into a cave: half a stride, ducking the head on the way in (the fade is the renderer's)
+  enter: { dirs: ALL, fps: 8, loop: false, poses: [1, 3, 5, 7].map((f, i) => ({ ...walkPose(f), headDy: i >= 2 ? 1 : 0 })) },
+  exit: { dirs: ALL, fps: 8, loop: false, poses: [1, 3, 5, 7].map((f, i) => ({ ...walkPose(f), headDy: i < 2 ? 1 : 0 })) },
+  // pulling the hand cart behind him: leans forward, hands back on the handle (the cart is its own sheet;
+  // the handle hangs on anchors.hands)
+  pull: { dirs: ALL, fps: 8, loop: true, contact: [1, 5],
+    poses: (d) => range(8, (f) => ({ ...walkPose(f), handA: 0, handB: 0, armDx: 0,
+      ...(d === 'E' || d === 'W' ? { lean: 1, arm: { dx: -4, dy: 3 } } : d === 'N' ? both(1, -1) : both(1, 3)) })) },
+
   // sitting on whatever is under him (bench, log, stump): hips down 3, breathing 1 px
   // (hands come up onto the lap — hanging to the feet read as a crouch)
   sit: { dirs: ['S', 'N'], fps: 2, loop: true, poses: [{ bob: 3, ...lap(3) }, { bob: 4, ...lap(3) }] },

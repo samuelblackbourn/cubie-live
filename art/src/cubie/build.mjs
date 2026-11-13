@@ -47,6 +47,7 @@ for (const [clip, c] of Object.entries(CLIPS)) {
   const base = blank(W * n, H * dirs.length); const em = blank(W * n, H * dirs.length);
   const ovs = Object.fromEntries(Object.keys(c.overlays ?? {}).map((k) => [k, { base: blank(W * n, H * dirs.length), em: blank(W * n, H * dirs.length) }]));
   const anchors = Object.fromEntries(dirs.map((d) => [d, []]));
+  const handAnchors = Object.fromEntries(dirs.map((d) => [d, []]));
   const frontArms = {};
   const grid = (list) => Array.from({ length: H }, (_, y) => Array.from({ length: W }, (_, x) => list.find((p) => p[0] === x && p[1] === y)?.[2] ?? null));
   dirs.forEach((d, r) => posesFor(d).forEach((pose, f) => {
@@ -62,8 +63,12 @@ for (const [clip, c] of Object.entries(CLIPS)) {
     // the face goes on whichever head the frame shows: [x, y] on its own facing's head,
     // [x, y, kind] on a turned head, null when the back of the head is turned to us
     anchors[d].push(fr.screen ? (fr.screen.kind && fr.screen.kind !== d ? [fr.screen.x, fr.screen.y, fr.screen.kind] : [fr.screen.x, fr.screen.y]) : null);
+    // hand positions (A, and B where the facing shows it) for the renderer to hang things on
+    handAnchors[d].push(Object.fromEntries(Object.entries(fr.hands ?? {}).map(([k, v]) => [k, [v.x, v.y]])));
     for (const [k, fn] of Object.entries(c.overlays ?? {})) {
-      const px = fn({ ...fr, d, f, n, pose });
+      let px = fn({ ...fr, d, f, n, pose });
+      // back overlays sit behind him from the front and sides, in front of him from behind
+      if (k.startsWith('back.') && d !== 'N') px = px.filter(([x, y]) => !fr.rows[y]?.[x]);
       paint(ovs[k].base, grid(px), f * W, r * H);
       paint(ovs[k].em, grid(px.filter((p) => p[3] !== false)), f * W, r * H);
     }
@@ -77,7 +82,7 @@ for (const [clip, c] of Object.entries(CLIPS)) {
   for (const [k, o] of Object.entries(ovs)) { writePng(path.join(out, `${clip}.${k}.png`), o.base); writePng(path.join(out, `${clip}.${k}_emissive.png`), o.em); }
   writePng(path.join(out, `${clip}.png`), base);
   writePng(path.join(out, `${clip}_emissive.png`), em);
-  const json = { clip, frame: { w: W, h: H }, count: n, fps: c.fps, loop: c.loop, dirs, ...(c.contact ? { contact: c.contact } : {}), ...(c.face ? { face: c.face } : {}), ...(c.airborne ? { airborne: true } : {}), anchors: { face: anchors } };
+  const json = { clip, frame: { w: W, h: H }, count: n, fps: c.fps, loop: c.loop, dirs, ...(c.contact ? { contact: c.contact } : {}), ...(c.face ? { face: c.face } : {}), ...(c.airborne ? { airborne: true } : {}), anchors: { face: anchors, hands: handAnchors } };
   fs.writeFileSync(path.join(out, `${clip}.json`), `${JSON.stringify(json, null, 1)}\n`);
   console.log(`${clip}: ${n} frames × ${dirs.join(',')} @ ${c.fps} fps`);
 }

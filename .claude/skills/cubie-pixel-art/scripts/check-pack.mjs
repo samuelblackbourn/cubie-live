@@ -14,7 +14,10 @@
  *   <clip>.<layer>.<name>.png  optional overlays, layer = held | back | status | front (held.axe,
  *                         back.battery_pack, status.wet, front.arms = arms passing in front of
  *                         the face, drawn above it); same size and frames as the clip,
- *                         drawn above the body with occlusion already baked in
+ *                         drawn above the body with occlusion already baked in. Draw order:
+ *                         body, its _emissive, face (+ glow), then each overlay in the
+ *                         order back, held, status, front — an overlay hides the glow
+ *                         under it and adds its own _emissive
  * and once for the folder:
  *   faces.json            { size: [w, h], names: [...], cells?: { S: {file, size}, E: …, W: … } }
  *                         one sheet per direction that shows a face, one face per cell

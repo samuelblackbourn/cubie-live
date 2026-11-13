@@ -40,15 +40,18 @@ export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9' } 
       if (fs.existsSync(ef)) over(glow, crop(readPng(ef), k * cw, 0, cw, ch), anchor[0], anchor[1]);
     }
   }
-  // overlays (<clip>.held|back|status.<name>.png): occlusion is baked in, so they go on top
+  // overlays (<clip>.held|back|status|front.<name>.png): occlusion is baked in, so they go
+  // on top, in that order; each covers the glow beneath it and brings its own glow
+  over(body, glow, 0, 0);
   const ovRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(back|held|status|front)\\.[a-z0-9_]+\\.png$`);
   const order = { back: 0, held: 1, status: 2, front: 3 };
   for (const f2 of fs.readdirSync(dir).filter((x) => ovRe.test(x)).sort((p, q) => order[p.split('.').at(-3)] - order[q.split('.').at(-3)])) {
-    over(body, crop(readPng(path.join(dir, f2)), f * w, r * h, w, h), 0, 0);
+    const o = crop(readPng(path.join(dir, f2)), f * w, r * h, w, h);
+    over(body, o, 0, 0);
+    for (let i = 3; i < o.data.length; i += 4) if (o.data[i]) glow.data[i] = 0;
     const e2 = path.join(dir, f2.replace(/\.png$/, '_emissive.png'));
-    if (fs.existsSync(e2)) over(glow, crop(readPng(e2), f * w, r * h, w, h), 0, 0);
+    if (fs.existsSync(e2)) { const e = crop(readPng(e2), f * w, r * h, w, h); over(glow, e, 0, 0); over(body, e, 0, 0); }
   }
-  over(body, glow, 0, 0);
   return { body, glow, j };
 }
 
