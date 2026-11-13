@@ -12,7 +12,7 @@ const R = {
   cloth: ['#c9b48f', '#ad9170', '#96785c', '#7a5f49', '#5a4536', '#3b2d26'],
 };
 const OUT = { case: '#1f2229', wood: '#3b2d26', cloth: '#3b2d26' };
-const mk = () => new Layer(32, 48, R, OUT);
+const mk = (h = 48) => new Layer(32, h, R, OUT);
 const px = (L) => { const out = []; L.render().forEach((row, y) => row.forEach((c, x) => { if (c) out.push([x, y, c, false]); })); return out; };
 /** a filled box in one material, lit top-left, shaded bottom-right */
 const box = (L, m, x0, y0, x1, y1, lit = 1, mid = 2, dark = 3) => {
@@ -24,7 +24,7 @@ const straps = (t) => [t.x0 + 1, t.x1 - 1].flatMap((x) => [0, 1, 2].map((i) => [
 // ── battery pack: a boxy cell in dark metal, a lid band, three charge bars that glow ──
 export function batteryPack(fr) {
   const t = fr.torso; if (!t) return [];
-  const L = mk(); const out = [];
+  const L = mk(fr.rows.length); const out = [];
   const top = t.y0 - 1, bot = t.y1 - 1;
   if (fr.d === 'S' || fr.d === 'N') {
     const x0 = t.x0 - 2, x1 = t.x1 + 2;
@@ -54,7 +54,7 @@ export function batteryPack(fr) {
 // ── cargo frame: two wooden rails rising past his head, crossbars, a strapped sack ──
 export function cargoFrame(fr) {
   const t = fr.torso; if (!t) return [];
-  const L = mk();
+  const L = mk(fr.rows.length);
   const top = Math.max(1, fr.headTop - 4), bot = t.y1;
   const sack = (x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (!((x === x0 || x === x1) && (y === y0 || y === y1))) L.set(x, y, 'cloth', y === y0 || x === x0 ? 1 : y === y1 || x === x1 ? 3 : 2); };
   if (fr.d === 'S' || fr.d === 'N') {
@@ -101,7 +101,7 @@ export function wet(fr) {
   const spots = [];
   if (hl !== null) spots.push(left ? [hl + 1, hy + fall] : [hr - 2, hy + fall], left ? [hr - 3, hy + fall + 2] : [hl + 2, hy + fall + 2]);
   spots.push(left ? [t.x1 - 1, t.y1 + fall] : [t.x0, t.y1 + fall]);
-  for (const [x, y] of spots) DROP.forEach((row, i) => row.forEach(([dx, c]) => { const X = x + dx, Y = y + i; if (Y < 48) out.push([X, Y, c, false]); }));
+  for (const [x, y] of spots) DROP.forEach((row, i) => row.forEach(([dx, c]) => { const X = x + dx, Y = y + i; if (Y < fr.rows.length) out.push([X, Y, c, false]); }));
   return out;
 }
 

@@ -45,6 +45,27 @@ export const DRAFT_RAMPS = {
   screen: ['#071417', '#0b1f23', '#12343a', '#1b4a50'],
   accents: ['#d0414f', '#ffd37a'],
 };
+/**
+ * The gear palette (docs/design/08-gear.md §5): 12 ramps, light → dark, for anything
+ * Cubie wears or bolts on — never his own metal, screen, teal or pink. Allowed on
+ * gear overlays and leg-kit clips (<clip>@<kit>).
+ */
+export const GEAR_RAMPS = {
+  brass: ['#f6dd8a', '#e2bb5c', '#c4963f', '#9c7130', '#6f4d27', '#45301f'],
+  orange: ['#ffc27a', '#ff9a3c', '#e8722a', '#b8521f', '#7f3519', '#4a2014'],
+  canvas: ['#efe3c2', '#d8c79a', '#b9a476', '#93805a', '#6a5a44', '#43392f'],
+  leather: ['#d39a6a', '#b5774b', '#925a38', '#6f412b', '#4d2c22', '#301c18'],
+  olive: ['#c3c98a', '#9ea563', '#7a8446', '#5a6334', '#3d4428', '#26291d'],
+  forest: ['#9be08a', '#5fbf5f', '#3d9650', '#2b6f44', '#1f4b35', '#142e24'],
+  navy: ['#8fb0e0', '#5f86c4', '#3f62a0', '#2d4678', '#213152', '#151d33'],
+  crimson: ['#ff8f8f', '#e8545c', '#c23545', '#8f2437', '#5e1a2b', '#36111d'],
+  plum: ['#d6a6f0', '#ae74d6', '#8a51b5', '#663a8a', '#45285f', '#2a1a3b'],
+  gold: ['#fff1a8', '#ffd95a', '#f0b429', '#c48a1c', '#8a5e17', '#533812'],
+  copper: ['#f2b48a', '#d98d5f', '#b56b42', '#8a4f33', '#5e3626', '#3a2219'],
+  rubber: ['#6e6a78', '#55515e', '#403d48', '#2f2c36', '#211f27', '#151419'],
+};
+/** Gear glow (rocket and jet flame, sparks): emissive on gear only; it may hang off the body (exhaust). */
+export const GEAR_EMISSIVE = ['#fff1a8', '#ffd95a', '#ffc27a', '#ff9a3c'];
 /** Emissive colours: allowed off-ramp, and the only pixels allowed on an _emissive layer. */
 export const EMISSIVE = ['#1c9c94', '#27d4c9', '#7df2ea', '#c43a8a', '#f05fb3', '#ffb0dc', '#ffd37a'];
 /** The chest-strip key the renderer tints (skill §4). */
@@ -74,8 +95,9 @@ export function ramps() {
   cached = gpl && fs.existsSync(gpl) ? { ramps: readGpl(gpl), source: 'art/palette.gpl' } : { ramps: DRAFT_RAMPS, source: 'draft' };
   return cached;
 }
-export function paletteSet({ emissive = true, key = true } = {}) {
+export function paletteSet({ emissive = true, key = true, gear = false } = {}) {
   const s = new Set(Object.values(ramps().ramps).flat().map((h) => h.toLowerCase()));
+  if (gear) { Object.values(GEAR_RAMPS).flat().forEach((h) => s.add(h)); GEAR_EMISSIVE.forEach((h) => s.add(h)); }
   if (emissive) EMISSIVE.forEach((h) => s.add(h));
   if (key) s.add(STRIP_KEY);
   return s;
