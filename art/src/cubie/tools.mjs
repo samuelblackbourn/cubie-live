@@ -38,7 +38,7 @@ export function tool(fr, kind, angle, { behind = false, over = false, hand = 'A'
   // flip: the other hand's tool in a mirrored pair (the second oar)
   const mirror = (fr.d === 'W' || fr.d === 'N') !== flip;
   const a = norm(mirror ? 180 - angle : angle); const [ux, uy] = DIR[a]; const [vx, vy] = mirror ? [uy, -ux] : [-uy, ux];
-  const L = new Layer(32, 48, RAMPS, OUT); const S = SHAPES[kind];
+  const L = new Layer(32, fr.rows.length, RAMPS, OUT); const S = SHAPES[kind];
   for (let i = 0; i <= S.haft; i++) L.set(h.x + ux * (i - 1), h.y + uy * (i - 1), 'wood', i < 2 ? 3 : 2);
   if (S.grip) { L.set(h.x - ux * 2 + vx, h.y - uy * 2 + vy, 'wood', 3); L.set(h.x - ux * 2 - vx, h.y - uy * 2 - vy, 'wood', 3); L.set(h.x - ux * 2, h.y - uy * 2, 'wood', 3); }
   const tx = h.x + ux * S.haft, ty = h.y + uy * S.haft;

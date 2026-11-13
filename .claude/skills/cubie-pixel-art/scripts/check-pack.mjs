@@ -39,7 +39,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { inspect, readPng } from './png.mjs';
-import { EMISSIVE, STRIP_KEY, crop, eachPixel, paletteSet, rgbHex } from './lib.mjs';
+import { EMISSIVE, GEAR_EMISSIVE, STRIP_KEY, crop, eachPixel, paletteSet, rgbHex } from './lib.mjs';
 
 /** Frame budgets from docs/design/06-animations.md §2 (the clips placeholders exist for). */
 export const BUDGET = {
@@ -52,12 +52,12 @@ export const BUDGET = {
 };
 const DIRS = ['S', 'W', 'E', 'N'];
 const AIRBORNE = /^(celebrate|knockback|vault|slide|dance)/;
-const FRAME = { w: 32, h: 48 };
+const BASE = { w: 32, h: 48 }, TALL = { w: 32, h: 64 };
 
 export function checkPack(dir, { only } = {}) {
   const errors = [], warnings = [], summary = [];
   if (!fs.existsSync(dir)) return { errors: [`${dir} does not exist`], warnings, summary };
-  const pal = paletteSet(); const glow = new Set(EMISSIVE);
+  const pal0 = paletteSet(), palGear = paletteSet({ gear: true }); const glow0 = new Set(EMISSIVE), glowGear = new Set([...EMISSIVE, ...GEAR_EMISSIVE]);
   const files = fs.readdirSync(dir);
   const clips = files.filter((f) => f.endsWith('.json') && f !== 'faces.json').map((f) => f.slice(0, -5)).filter((c) => !only || c === only);
   if (!clips.length) errors.push(`no <clip>.json in ${dir}`);
@@ -91,7 +91,12 @@ export function checkPack(dir, { only } = {}) {
     let j;
     try { j = JSON.parse(fs.readFileSync(path.join(dir, `${clip}.json`), 'utf8')); } catch (e) { E(`${clip}.json is not valid JSON — ${e.message}`); continue; }
     const fw = j.frame?.w, fh = j.frame?.h;
-    if (fw !== FRAME.w || fh !== FRAME.h) E(`frame must be ${FRAME.w}×${FRAME.h}, is ${fw}×${fh}`);
+    // a leg-kit variant (<clip>@<kit>, json `kit`) may be 32×64 — the kit makes him taller (gear §5)
+    const FRAME = j.kit && fh === TALL.h ? TALL : BASE;
+    // a leg kit is gear: its clips may use the gear palette, and its flame may hang off the body
+    const pal = j.kit ? palGear : pal0, glow = j.kit ? glowGear : glow0;
+    if (fw !== FRAME.w || fh !== FRAME.h) E(`frame must be ${BASE.w}×${BASE.h}${j.kit ? ` or ${TALL.w}×${TALL.h} (leg kit)` : ''}, is ${fw}×${fh}`);
+    if (j.kit && !clip.endsWith(`@${j.kit}`)) E(`kit "${j.kit}" clips are named <clip>@${j.kit}`);
     if (!Number.isInteger(j.count) || j.count < 1) { E('count must be a positive integer'); continue; }
     if (!(j.fps > 0)) E('fps must be > 0');
     if (typeof j.loop !== 'boolean') E('loop must be true or false');
@@ -158,13 +163,13 @@ export function checkPack(dir, { only } = {}) {
       if (e.width !== img.width || e.height !== img.height) E(`${clip}_emissive.png is ${e.width}×${e.height}, expected ${img.width}×${img.height}`);
       else {
         let floating = 0, wrong = new Set(), n = 0;
-        eachPixel(e, (x, y, r, g, bb) => { n++; if (!img.data[(y * img.width + x) * 4 + 3]) floating++; const h = rgbHex(r, g, bb); if (!glow.has(h) && h !== STRIP_KEY) wrong.add(h); });
+        eachPixel(e, (x, y, r, g, bb) => { n++; const h = rgbHex(r, g, bb); if (!img.data[(y * img.width + x) * 4 + 3] && !(j.kit && GEAR_EMISSIVE.includes(h))) floating++; if (!glow.has(h) && h !== STRIP_KEY) wrong.add(h); });
         if (floating) E(`${clip}_emissive.png: ${floating} pixels float with no body under them`);
         if (wrong.size) E(`${clip}_emissive.png has non-glow colours: ${[...wrong].slice(0, 6).join(' ')}`);
         summary.push(`${clip}: emissive ${n} px`);
       }
     } else Wn(`no ${clip}_emissive.png (strip, antenna bobble and charge LED glow from it)`);
-    const overlayRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(tint|held|back|status|front)\\.[a-z0-9_]+(_emissive)?\\.png$`);
+    const overlayRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(tint|outfit|held|back|status|visor|top|front)\\.[a-z0-9_]+(_emissive)?\\.png$`);
     for (const f of files.filter((x) => overlayRe.test(x))) {
       const o = readPng(path.join(dir, f));
       if (o.width !== img.width || o.height !== img.height) E(`overlay ${f} is ${o.width}×${o.height}, expected ${img.width}×${img.height}`);

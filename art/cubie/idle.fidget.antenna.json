@@ -15,7 +15,14 @@
   "back.battery_pack",
   "back.cargo_frame",
   "tint.wet",
-  "status.wet"
+  "status.wet",
+  "top.hard_hat",
+  "top.sun_hat",
+  "visor.sun_visor",
+  "outfit.apron",
+  "outfit.rain_poncho",
+  "outfit.tool_belt",
+  "outfit.boots"
  ],
  "anchors": {
   "face": {

@@ -3,6 +3,8 @@
 // whatever the renderer's mood/event face is). Timing and frame counts follow
 // docs/design/06-animations.md §2; contact frames are where the SFX fire.
 import { tool } from './tools.mjs';
+import { O } from './model.mjs';
+import { mapBoard } from './gear.mjs';
 
 const ALL = ['S', 'W', 'E', 'N'];
 
@@ -353,3 +355,67 @@ Object.assign(CLIPS, {
 // he holds it upright at his side by the haft, head at shoulder height, blade outwards
 const CARRY = { S: [90, [0, 2], true], N: [90, [0, 2], true], E: [90, [0, 2]], W: [90, [0, 2]] };
 for (const k of ['idle', 'walk']) CLIPS[k].worn = ['held.axe', 'held.pick', 'held.shovel'], CLIPS[k].overlays = Object.fromEntries(['axe', 'pick', 'shovel'].map((t) => [`held.${t}`, (fr) => { const [a, nudge, flip] = CARRY[fr.d]; return tool(fr, t, a, { nudge, flip }); }]));
+// the map board (a starter gadget, gear §3.8) is carried the same way
+for (const k of ['idle', 'walk']) { CLIPS[k].worn.push('held.map_board'); CLIPS[k].overlays['held.map_board'] = mapBoard; }
+
+// ── gear test: rocket legs (docs/design/08-gear.md §3.2) — a leg kit is a body variant:
+// model O with longer legs on a 32×64 frame, drawn for the clips the kit allows
+// (locomotion and idle); every other activity retracts it first ──
+const ROCKET = { ...O, legH: 16, frameH: 64, legKit: 'rocket' };
+const kit = (c, extra = {}) => ({ ...c, ...extra, model: ROCKET, kit: 'rocket_legs' });
+const sideD = (d) => d === 'E' || d === 'W';
+CLIPS['idle@rocket_legs'] = kit(CLIPS.idle);
+CLIPS['walk@rocket_legs'] = kit(CLIPS.walk, { fps: 13 }); // 30% quicker (move_mult 0.7)
+// dash: thrusters on, a skimming stride just off the ground, leaning in, arms swept back
+CLIPS['dash@rocket_legs'] = kit({ dirs: ALL, fps: 12, loop: true, contact: [0, 2], airborne: true,
+  poses: (d) => range(4, (f) => ({ ...walkPose(f * 2), hop: [4, 5, 4, 5][f], thrust: [2, 1, 2, 1][f],
+    ...(sideD(d) ? { lean: 1, arm: { dx: -4, dy: 3 }, armDx: 0 } : { ...both(2, 4), handA: 0, handB: 0 }) })),
+  face: Array(4).fill('happy') });
+// hop: crouch, fire, up, top, down, land
+CLIPS['hop@rocket_legs'] = kit({ dirs: ALL, fps: 10, loop: false, contact: [1, 5], airborne: true,
+  poses: (d) => [{ bob: 2 }, { hop: 3, thrust: 2 }, { hop: 7, thrust: 1 }, { hop: 8 }, { hop: 4 }, { bob: 2 }]
+    .map((p, f) => ({ ...p, ...(f >= 1 && f <= 3 ? (sideD(d) ? { arm: { dx: 1, dy: 6 } } : both(2, 6)) : {}) })),
+  face: [null, 'surprised', 'happy', 'happy', null, null] });
+CLIPS['legs.extend@rocket_legs'] = kit({ dirs: ALL, fps: 8, loop: false, contact: [3], poses: [0, 0.34, 0.67, 1].map((kitExt, f) => ({ kitExt, ...(f === 3 ? { thrust: 1 } : {}) })) });
+CLIPS['legs.retract@rocket_legs'] = kit({ dirs: ALL, fps: 8, loop: false, contact: [3], poses: [1, 0.67, 0.34, 0].map((kitExt) => ({ kitExt })) });
+
+
+// ── gear test: the spyglass (gear §3.8) — he lifts it to his screen, looks, lowers it ──
+const SPY = [ // rest, lift, at the eye (f2–f4: a slow pan), lower
+  { side: { at: [21, 36] }, front: { A: [8, 36] } },
+  { side: { at: [22, 30] }, front: { A: [9, 30] } },
+  { side: { at: [23, 23], armsFront: true }, front: { A: [11, 25], armsFront: true } },
+  { side: { at: [23, 23], armsFront: true }, front: { A: [11, 25], armsFront: true }, body: { headDx: 1 } },
+  { side: { at: [23, 23], armsFront: true }, front: { A: [11, 25], armsFront: true } },
+  { side: { at: [22, 30] }, front: { A: [9, 30] } },
+];
+/** the spyglass: a brass tube held to the screen; from the front its end is a ring over his left eye */
+const spyglass = (fr) => {
+  const h = fr.hands?.A; if (!h) return [];
+  const B = ['#f6dd8a', '#e2bb5c', '#c4963f', '#9c7130', '#6f4d27', '#45301f'];
+  const out = [];
+  if (fr.d === 'E' || fr.d === 'W') {
+    const s = fr.d === 'E' ? 1 : -1; const y = h.y - 1;
+    if (fr.f < 2 || fr.f > 4) { for (let i = 0; i < 4; i++) { out.push([h.x + s * i, h.y + 2, B[i === 3 ? 4 : 2], false]); out.push([h.x + s * i, h.y + 3, B[4], false]); } return out; }
+    for (let i = 0; i < 6; i++) { out.push([h.x + s * i, y, B[i === 5 ? 0 : 1], false]); out.push([h.x + s * i, y + 1, B[i === 5 ? 3 : 3], false]); }
+    out.push([h.x + s * 6, y, B[5], false], [h.x + s * 6, y + 1, B[5], false]);
+    return out;
+  }
+  if (fr.d === 'N') return [];
+  if (fr.f < 2 || fr.f > 4) { for (let i = 0; i < 4; i++) out.push([h.x + 1, h.y + 2 + i, B[i === 0 ? 1 : 3], false], [h.x + 2, h.y + 2 + i, B[4], false]); return out; }
+  // end-on: a ring with a dark lens, over his left eye
+  const cx = h.x + 1, cy = h.y - 4;
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    const r = Math.abs(dx) + Math.abs(dy); if (r > 3) continue;
+    out.push([cx + dx, cy + dy, r <= 1 ? (dx === -1 && dy === -1 ? '#2d4678' : '#151d33') : B[dy < 0 ? 1 : 3], false]);
+  }
+  return out;
+};
+CLIPS['use.spyglass'] = { ...action({ fps: 5, loop: false, keys: SPY.map((k) => ({ side: { ...k.side, ang: null }, front: { ...k.front, ang: null }, body: k.body })) }),
+  face: [null, null, 'squint', 'squint', 'squint', null], overlays: { 'front.spyglass': spyglass } };
+
+// ── gear test: the visible swap at the pod's gear rack (gear §5) ──
+CLIPS['gear.rack.in'] = { dirs: ['S'], fps: 6, loop: false, airborne: true, poses: [{}, { hop: 1 }, { bob: 1, ...both(2, 6) }, both(3, 7)] };
+CLIPS['gear.rack.swap'] = { dirs: ['S'], fps: 6, loop: false, contact: [3], poses: Array(6).fill(both(3, 7)).map((p, f) => (f === 3 ? { ...p, bob: 1 } : p)),
+  face: [null, null, 'squint', 'surprised', 'happy', 'happy'], overlays: { 'status.sparks': (fr) => (fr.f === 3 ? [...sparks(fr.cx - 9, fr.headTop + 2), ...sparks(fr.cx + 8, fr.headTop + 2)] : []) } };
+CLIPS['gear.rack.out'] = { dirs: ['S'], fps: 8, loop: false, poses: [both(3, 7), { bob: 1 }, { bodyDx: -1 }, { bodyDx: 1 }, { bodyDx: -1 }, {}], face: ['happy', 'happy', 'happy', 'happy', 'happy', null] };

@@ -1,0 +1,131 @@
+{
+ "clip": "gear.rack.swap",
+ "frame": {
+  "w": 32,
+  "h": 48
+ },
+ "count": 6,
+ "fps": 6,
+ "loop": false,
+ "dirs": [
+  "S"
+ ],
+ "contact": [
+  3
+ ],
+ "face": [
+  null,
+  null,
+  "squint",
+  "surprised",
+  "happy",
+  "happy"
+ ],
+ "worn": [
+  "back.battery_pack",
+  "back.cargo_frame",
+  "tint.wet",
+  "status.wet",
+  "top.hard_hat",
+  "top.sun_hat",
+  "visor.sun_visor",
+  "outfit.apron",
+  "outfit.rain_poncho",
+  "outfit.tool_belt",
+  "outfit.boots"
+ ],
+ "anchors": {
+  "face": {
+   "S": [
+    [
+     7,
+     16
+    ],
+    [
+     7,
+     16
+    ],
+    [
+     7,
+     16
+    ],
+    [
+     7,
+     17
+    ],
+    [
+     7,
+     16
+    ],
+    [
+     7,
+     16
+    ]
+   ]
+  },
+  "hands": {
+   "S": [
+    {
+     "A": [
+      4,
+      28
+     ],
+     "B": [
+      26,
+      28
+     ]
+    },
+    {
+     "A": [
+      4,
+      28
+     ],
+     "B": [
+      26,
+      28
+     ]
+    },
+    {
+     "A": [
+      4,
+      28
+     ],
+     "B": [
+      26,
+      28
+     ]
+    },
+    {
+     "A": [
+      4,
+      29
+     ],
+     "B": [
+      26,
+      29
+     ]
+    },
+    {
+     "A": [
+      4,
+      28
+     ],
+     "B": [
+      26,
+      28
+     ]
+    },
+    {
+     "A": [
+      4,
+      28
+     ],
+     "B": [
+      26,
+      28
+     ]
+    }
+   ]
+  }
+ }
+}

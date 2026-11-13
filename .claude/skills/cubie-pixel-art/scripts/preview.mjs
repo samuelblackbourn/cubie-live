@@ -43,8 +43,8 @@ export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9', h
   // overlays (<clip>.tint|back|held|status|front.<name>.png; tint recolours the body itself, under the rest): occlusion is baked in, so they go
   // on top, in that order; each covers the glow beneath it and brings its own glow
   over(body, glow, 0, 0);
-  const ovRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(tint|back|held|status|front)\\.[a-z0-9_]+\\.png$`);
-  const order = { tint: -1, back: 0, held: 1, status: 2, front: 3 };
+  const ovRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(tint|outfit|back|held|status|visor|top|front)\\.[a-z0-9_]+\\.png$`);
+  const order = { tint: -2, outfit: -1, back: 0, held: 1, status: 2, visor: 2.5, top: 2.7, front: 3 };
   // a clip may offer several held tools (the renderer shows the one he holds): show `held`, else the first
   // overlays the clip lists as `worn` (packs, wet, a tool carried on idle/walk) show only when asked for in `show`
   const key = (x) => x.slice(clip.length + 1, -4); const worn = j.worn ?? [];
