@@ -1,4 +1,4 @@
-# Cubie — the character sprite (approved reference, 2026-11-13)
+# Cubie — the character sprite (approved reference, 2026-11-13, revision 2)
 
 The creator approved this turnaround on 2026-11-13 after seven design passes. It is
 the reference every later Cubie sprite is drawn or generated against: the
@@ -6,8 +6,10 @@ placeholder clips in P2 and the PixelLab sheets in P3.
 
 - Sprites: `art/reference/cubie/cubie_{S,W,E,N}.png` (32×48) and
   `art/reference/cubie/faces/*.png` (the seven faces, shown on the S sprite).
-- Source: `art/src/cubie/turnaround.mjs`, model `O`. The script is the source of
-  truth; never touch up a PNG.
+- Source: `art/src/cubie/model.mjs`, model `O` (revision 2), written out by
+  `art/src/cubie/turnaround.mjs`. The same model draws the clips
+  (`art/src/cubie/build.mjs`), which refuses to run if the reference no longer
+  matches it. The script is the source of truth; never touch up a PNG.
 - Live review board: the "Cubie — visual design system (draft)" design canvas,
   page 4. Pages 1–3 (foundations, palette, hero tile) are older drafts that have
   not been reviewed against this character yet.
@@ -20,16 +22,17 @@ was used only for proportions and was not copied anywhere.
 
 - **Head**: square, rounded corners. 24 wide. Seen from the side it is 16 wide
   (slim). White shell.
-- **Face**: a black screen, 18×8 inside a 1-px dark bezel, in the lower part of the
-  head. Teal eyes (4×5 with a glint) and a small teal mouth. The face carries
-  the cuteness; the creator's "cute test" is the bar.
+- **Face**: a black screen, 18×11 inside a 1-px dark bezel, filling the lower part
+  of the head. Teal eyes (4×5 with a glint) and a small teal mouth, both in the
+  middle of the screen; at rest the mouth is a slight smile. The face carries the
+  cuteness; the creator's "cute test" is the bar.
 - **Antenna**: on *his* left, standing on top of the dome, pink bobble. Because of
   the antenna, E and W are different drawings, not mirrors.
-- **Ear pods**: small dark rounded pods on each side of the head.
+- **Ear pods**: small rounded pods on each side of the head, white like the shell.
 - **Body**: small, 10 wide. Chest LED strip (4 cells). On the back, a dark battery
   pack with a pink charge LED. Head vent on the back of the head.
-- **Arms**: thin, 2 px, ball joints at the shoulders, dark mitten hands that
-  reach the hip.
+- **Arms**: thin, 2 px, ball joints at the shoulders, a small dark nub hand
+  (1 px wide, 3 tall, no side points) that reaches the hip.
 - **Legs**: thin, 3 px, ball hips, big dark rounded feet.
 
 ## 2. The view — the office characters' angle
@@ -39,8 +42,8 @@ angle was measured from the office's `char_0` sheet and applied, not invented:
 
 | | Office char_0 | Cubie (32×48) |
 |---|---|---|
-| Head | ~54% of figure | 23 rows of 44 |
-| Top of head (hair / dome) | ~2/3 of the head; eyes sit low | 13-row dome over a 10-row face |
+| Head | ~54% of figure | 20 rows of 41 (revision 2; was 23 of 44) |
+| Top of head (hair / dome) | ~2/3 of the head; eyes sit low | 7-row dome over a 13-row face (revision 2; was 13 over 10) |
 | Body | ~1/4, hands at the hip | 3 top + 8 front rows; mittens at the hip |
 | Legs + feet | ~1/5 | legs 6, feet 3 (2 top + 1 front) |
 
@@ -56,22 +59,22 @@ angle was measured from the office's `char_0` sheet and applied, not invented:
 Ramps run highlight → shadow.
 
 - shell (metal): `#f7f9fb #e6eaf0 #c7ced9 #9aa3b1 #6b7382 #3f4552`, outline `#3f4552`
-- joints, feet, hands, pods, bezel (dark): `#9aa3b1 #6b7382 #4d5361 #3f4552 #2e323c #1f2229`, outline `#1f2229`
+- joints, feet, hands, bezel (dark): `#9aa3b1 #6b7382 #4d5361 #3f4552 #2e323c #1f2229`, outline `#1f2229`
 - screen: `#1b4a50 #12343a #0b1f23 #071417`
 - teal (eyes, mouth, strip): `#7df2ea #27d4c9 #1c9c94`
 - pink (antenna, charge LED): `#ffb0dc #f05fb3 #c43a8a`
 
 Emissive pixels are the eyes, mouth, chest strip, antenna bobble and charge LED.
-They are drawn as `fx` in the script, so they are easy to split onto the
-`_emissive` layer. The cubie-pixel-art skill wants the chest strip keyed as
-`#ff00ff` in production sheets so the renderer can tint it. That is not done
-yet.
+They are drawn as `fx`. In the clip sheets (`art/cubie/`) the chest strip is
+keyed `#ff00ff`, the glowing parts are drawn off in the base and lit on the
+`_emissive` layers, and the face is an overlay placed by anchor.
 
 ## 4. Faces
 
-`idle, happy, thinking, sad, surprised, blink, off`. Each is an overlay on the
-18×8 screen, drawn from code in `FACES`. The animations note asks for six named
-faces plus blink; check its list against these names when porting.
+`idle, happy, thinking, sad, surprised, blink, off`. Each is drawn from code in
+`FACES` in an 8-row band centred on the 18×11 screen. `idle` (the resting face)
+has a slight smile, and `blink` keeps it. The clips add placeholder
+`embarrassed, closed, squint` from the animations note.
 
 ## 5. Design history (so nobody repeats it)
 
@@ -89,11 +92,17 @@ faces plus blink; check its list against these names when porting.
 8. **O**: F redrawn at the office characters' angle, measured from char_0.
    **Approved.**
 
+9. **Revision 2** (same evening), on the creator's notes: face top 3 rows higher
+   (screen 18×8 → 18×11, eyes and mouth to its middle, a slight smile at rest),
+   top of the head 3 rows lower (dome 13 → 7; he is now 45 px tall), the hand's
+   side points removed (plus-shaped mitten → 1-px nub; a 3-px flat mitten was the
+   other option), ears white. The two art-01 fixes became part of the model: side
+   near arm one column back, back vent up on the dome. **Approved.**
+
 Lesson: the angle comes from the office characters, measured. Cubie's features
 come from F. Don't re-proportion one to fix the other.
 
 ## 6. Still weak (known, not blocking)
 
-- In the side views, the near arm covers most of the 8-px-deep body.
-- In the back view, the vent sits a little low on the head.
-- No walk, idle or action frames yet.
+- Placeholder idle and walk exist (`art/cubie/`, art-01); no action frames yet.
+- The side-view arm swing is only a 1-px forearm shift.
