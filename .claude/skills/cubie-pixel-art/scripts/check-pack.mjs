@@ -11,12 +11,12 @@
  *                           anchors: { face: { S: [[x,y]…count], W: …, E: …, N: null } } }
  *   <clip>_emissive.png   optional; same size; only glowing pixels (eyes and mouth
  *                         live on the face overlay, so here: strip, antenna, charge LED)
- *   <clip>.<layer>.<name>.png  optional overlays, layer = held | back | status | front (held.axe,
+ *   <clip>.<layer>.<name>.png  optional overlays, layer = tint | held | back | status | front (held.axe,
  *                         back.battery_pack, status.wet, front.arms = arms passing in front of
  *                         the face, drawn above it); same size and frames as the clip,
  *                         drawn above the body with occlusion already baked in. Draw order:
  *                         body, its _emissive, face (+ glow), then each overlay in the
- *                         order back, held, status, front — an overlay hides the glow
+ *                         order tint (recolours the body), back, held, status, front — an overlay hides the glow
  *                         under it and adds its own _emissive
  * and once for the folder:
  *   faces.json            { size: [w, h], names: [...], cells?: { S: {file, size}, E: …, W: … } }
