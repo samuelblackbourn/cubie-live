@@ -79,27 +79,29 @@ export function cargoFrame(fr) {
 
 // ── wet: his metal a step darker except the brightest sheen, and 2-px drips that fall
 // from his head and body on frames 2 and 6 (of each 8; frame 2 of shorter clips) ──
-const DARKER = new Map(RAMPS.metal.slice(1, -1).map((c, i) => [c, RAMPS.metal[i + 2]]));
-const DROP = ['#d6f0f7', '#8ec3d8'];
+// wet metal: a cooler, two-step-darker ramp; the brightest step stays as the sheen
+const DARKER = new Map([[RAMPS.metal[1], '#a9b4c4'], [RAMPS.metal[2], '#8a95a8'], [RAMPS.metal[3], '#6b7382'], [RAMPS.metal[4], '#565e6e']]);
+// a drop: 1 px neck, 2 px belly, 4 tall; it falls 4 px on the frame after it forms
+const DROP = [[[0, '#e4f6fb']], [[0, '#b6e0ee']], [[0, '#8ec3d8'], [1, '#b6e0ee']], [[0, '#5f9ab3'], [1, '#8ec3d8']]];
 /** tint.wet: his metal one step darker except the brightest sheen; drawn right on the body, under packs and tools */
 export function wetTint(fr) {
   const out = [];
   fr.rows.forEach((row, y) => row.forEach((c, x) => { if (DARKER.has(c)) out.push([x, y, DARKER.get(c), false]); }));
   return out;
 }
-/** status.wet: the drips */
+/** status.wet: drops form under his head and body on frames 2 and 6 (of each 8) and fall on 3 and 7 */
 export function wet(fr) {
   const out = [];
-  const k = fr.f % 8; if (k !== 2 && k !== 6) return out;
+  const k = fr.f % 8; if (![2, 3, 6, 7].includes(k)) return out;
   const t = fr.torso; if (!t) return out;
   // the head's lowest full-width row: the first row above the torso wider than it by 3+
   let hy = t.y0 - 1, hl = null, hr = null;
   for (; hy > 0; hy--) { const xs = fr.rows[hy].map((c, x) => (c ? x : -1)).filter((x) => x >= 0); if (xs.length && xs[0] < t.x0 - 2) { hl = xs[0]; hr = xs.at(-1); break; } }
+  const left = k < 4, fall = k === 3 || k === 7 ? 4 : 1;
   const spots = [];
-  const left = k === 2;
-  if (hl !== null) spots.push(left ? [hl + 1, hy + 2] : [hr - 1, hy + 2]);
-  spots.push(left ? [t.x1, t.y1 + 2] : [t.x0, t.y1 + 2]);
-  for (const [x, y] of spots) for (let i = 0; i < 2; i++) if (!fr.rows[y + i]?.[x]) out.push([x, y + i, DROP[i], false]);
+  if (hl !== null) spots.push(left ? [hl + 1, hy + fall] : [hr - 2, hy + fall], left ? [hr - 3, hy + fall + 2] : [hl + 2, hy + fall + 2]);
+  spots.push(left ? [t.x1 - 1, t.y1 + fall] : [t.x0, t.y1 + fall]);
+  for (const [x, y] of spots) DROP.forEach((row, i) => row.forEach(([dx, c]) => { const X = x + dx, Y = y + i; if (Y < 48) out.push([X, Y, c, false]); }));
   return out;
 }
 
