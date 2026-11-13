@@ -1,7 +1,7 @@
 {
  "size": [
   18,
-  8
+  11
  ],
  "names": [
   "idle",
@@ -34,21 +34,21 @@
    "file": "faces.png",
    "size": [
     18,
-    8
+    11
    ]
   },
   "E": {
    "file": "faces_E.png",
    "size": [
     4,
-    8
+    11
    ]
   },
   "W": {
    "file": "faces_W.png",
    "size": [
     4,
-    8
+    11
    ]
   }
  }
