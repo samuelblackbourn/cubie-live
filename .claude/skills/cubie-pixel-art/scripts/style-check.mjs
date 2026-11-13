@@ -11,8 +11,9 @@
  * #ff00ff and the emissive colours are allowed off-ramp and are not counted as
  * "vivid", so a keyed sheet is judged on the body.
  *
- * Thresholds: `cubie` is calibrated from art/reference/cubie/ (2026-11-13: median
- * saturation 0.08–0.13, bright 30–33 %, vivid 0.4–6 %, 11–16 colours). The others
+ * Thresholds: `cubie` is calibrated from art/reference/cubie/ (revision 2,
+ * 2026-11-13: median saturation 0.08–0.23 — the 18×11 screen's dark teal lifts the
+ * front views — bright 20–33 %, 11–16 colours; first head was 0.08–0.13). The others
  * are the art system's written targets (§2 saturation budget: ground quietest,
  * vegetation middling, nodes / icons / Cubie loudest) and get recalibrated from
  * the hero tile in P3. Loudness here is "vivid" and "bright": Cubie is a white
@@ -32,7 +33,7 @@ export const TARGETS = {
   structure: { sat: [0.03, 0.6], bright: 16, vivid: 6, colours: 32, offRamp: 0 },
   icon: { sat: [0.05, 0.75], bright: 20, vivid: 14, colours: 20, offRamp: 0 },
   ui: { sat: [0.0, 0.4], bright: 20, vivid: 6, colours: 16, offRamp: 0 },
-  cubie: { sat: [0.04, 0.2], bright: 40, vivid: 8, colours: 24, offRamp: 0 },
+  cubie: { sat: [0.04, 0.3], bright: 40, vivid: 8, colours: 24, offRamp: 0 },
 };
 
 export function styleCheck(kind, img) {
