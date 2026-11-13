@@ -79,7 +79,7 @@ for (const [clip, c] of Object.entries(CLIPS)) {
     dirs.forEach((d, r) => (frontArms[d] ?? []).forEach((arms, f) => arms && paint(o, grid(arms), f * W, r * H)));
     writePng(path.join(out, `${clip}.front.arms.png`), o);
   }
-  for (const [k, o] of Object.entries(ovs)) { writePng(path.join(out, `${clip}.${k}.png`), o.base); writePng(path.join(out, `${clip}.${k}_emissive.png`), o.em); }
+  for (const [k, o] of Object.entries(ovs)) { writePng(path.join(out, `${clip}.${k}.png`), o.base); if (o.em.data.some((v, i) => i % 4 === 3 && v)) writePng(path.join(out, `${clip}.${k}_emissive.png`), o.em); }
   writePng(path.join(out, `${clip}.png`), base);
   writePng(path.join(out, `${clip}_emissive.png`), em);
   const json = { clip, frame: { w: W, h: H }, count: n, fps: c.fps, loop: c.loop, dirs, ...(c.contact ? { contact: c.contact } : {}), ...(c.face ? { face: c.face } : {}), ...(c.airborne ? { airborne: true } : {}), anchors: { face: anchors, hands: handAnchors } };

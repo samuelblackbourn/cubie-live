@@ -19,6 +19,8 @@
 //   armA/B     S/N: hand A / B moved { dx: outward px, dy: up px } — the arm is drawn
 //              from the shoulder to it (A = left on screen)
 //   arm        E/W: near hand moved { dx: forward px, dy: up px }
+//   at         { A: [x, y], B: [x, y] } — put the hand nub(s) at these pixels (S/N: A, B;
+//              E/W: A is the near hand); the arm is worked out from the shoulder
 //   armsFront  draw the arms after the head (hands in front of the screen); build.mjs
 //              moves them onto a front.arms overlay so the face overlay can't cover them
 //   hideArms   leave the posed arms out (used to split them onto that overlay)
@@ -195,8 +197,15 @@ function armLine(L, x0, y0, x1, y1) {
   const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1); const pts = [];
   for (let i = 0; i <= n; i++) pts.push([Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n)]);
   const flat = Math.abs(x1 - x0) > Math.abs(y1 - y0);
-  for (const [x, y] of pts) if (flat) { L.set(x, y - 1, null); L.set(x, y + 2, null); } else { L.set(x - 1, y, null); L.set(x + 2, y, null); }
-  for (const [x, y] of pts) if (flat) { L.set(x, y, 'metal', 1); L.set(x, y + 1, 'metal', 3); } else { L.set(x, y, 'metal', 1); L.set(x + 1, y, 'metal', 3); }
+  const cells = pts.flatMap(([x, y]) => (flat ? [[x, y, 1], [x, y + 1, 3]] : [[x, y, 1], [x + 1, y, 3]]));
+  const mine = new Set(cells.map(([x, y]) => `${x},${y}`));
+  // where the arm lies over his body, edge its shadow side with a dark line (no gap,
+  // and not both sides: either read as stripes across the torso); over empty ground
+  // the outline does it
+  for (const [x, y] of cells) for (const [dx, dy] of flat ? [[0, 1]] : [[1, 0]]) { // shadow side only (light is top-left)
+    const k = `${x + dx},${y + dy}`; if (!mine.has(k) && L.get(x + dx, y + dy)) L.set(x + dx, y + dy, 'dark', 4);
+  }
+  for (const [x, y, t] of cells) L.set(x, y, 'metal', t);
 }
 /** The nub hand at an arm's end: below it when the arm hangs, above when raised. */
 function nubAt(L, x, y, up) { const y0 = up ? y - 2 : y; for (let i = 0; i < 3; i++) L.set(x, y0 + i, 'dark', i === 0 ? 2 : i === 2 ? 4 : 3); }
@@ -241,7 +250,9 @@ function frontArms(L, g, pose, ctx, cx) {
     const a0 = d < 0 ? sx - 2 : sx + 1, a1 = a0 + 1;
     const up = (d < 0 ? pose.handA : pose.handB) ?? 0;
     const hy = g.torY1 - 1 + g.armDrop - up;
-    const P = d < 0 ? pose.armA : pose.armB; const outer = d < 0 ? a0 : a1;
+    let P = d < 0 ? pose.armA : pose.armB; const outer = d < 0 ? a0 : a1;
+    const T = pose.at?.[d < 0 ? 'A' : 'B'];
+    if (T) { const ex = d < 0 ? T[0] : T[0] - 1; P = { dx: (ex - a0) * d, dy: hy - 1 - T[1] }; } // hand nub at T
     if (!P) {
       L.rect(a0, sy + 2, a1, hy - 1, 'metal', (x) => (x === a0 ? 1 : 3));
       hand(L, d < 0 ? a0 - 1 : a0, hy, g.hand);
@@ -291,6 +302,8 @@ function sideArm(L, g, pose, ctx, dir, F, span) {
   const mid = sy + 2 + Math.floor((hy - sy - 2) / 2);
   L.rect(sx0, sy + 2, sx1, mid - 1, 'metal', (x) => (x === (dir > 0 ? sx0 : sx1) ? 1 : 3));
   L.rect(ax0, mid, ax1, hy - 1, 'metal', (x) => (x === (dir > 0 ? ax0 : ax1) ? 1 : 3));
+  if (pose.at?.A && !pose.arm) { const [tx, ty] = pose.at.A; const cx = (F(0) + F(-1) + 1) / 2 | 0; // F(0) is the upper-body centre
+    const c0 = F(0); pose = { ...pose, arm: { dx: dir > 0 ? tx - 1 - c0 + 3 + back : c0 + 2 + back - tx - 1 + 1, dy: hy - 1 - ty } }; }
   if (!pose.arm) {
     hand(L, hx0h, hy, g.hand);
     ctx.hands.A = { x: hx0h + 1, y: hy + 1, up: false };
@@ -300,9 +313,11 @@ function sideArm(L, g, pose, ctx, dir, F, span) {
   for (let y = sy + 2; y <= hy + 2; y++) for (let x = Math.min(sx0, ax0, hx0h) - 1; x <= Math.max(sx1, ax1, hx1h) + 1; x++) L.set(x, y, null);
   // put back the torso the clearing took (redraw the torso box columns under the arm)
   ctx.repaintTorso?.();
-  ball(L, sx0, sy);
+  // a posed arm pivots from the middle of the body (from the back it crossed the whole torso)
+  const [px0] = span(F(-1), F(0));
+  ball(L, px0, sy);
   const ex = Math.min(...span(F(-3 - back + pose.arm.dx), F(-2 - back + pose.arm.dx))), ey = hy - 1 - pose.arm.dy; const up = ey < sy + 2;
-  armLine(L, sx0, up ? sy : sy + 2, ex, ey);
+  armLine(L, px0, up ? sy : sy + 2, ex, ey);
   const hx = dir > 0 ? ex + 1 : ex; nubAt(L, hx, up ? ey - 1 : ey + 1, up);
   ctx.hands.A = { x: hx, y: up ? ey - 2 : ey + 2, up };
 }

@@ -2,6 +2,8 @@
 // frame (pose fields: model.mjs header). `face` forces a face on a frame (null =
 // whatever the renderer's mood/event face is). Timing and frame counts follow
 // docs/design/06-animations.md §2; contact frames are where the SFX fire.
+import { tool } from './tools.mjs';
+
 const ALL = ['S', 'W', 'E', 'N'];
 
 // walk: contact f1 (foot A lands) and f5 (foot B); dip after each contact; the
@@ -54,6 +56,29 @@ const battery = (fr) => {
   const out = [];
   BATTERY.forEach((row, y) => [...row].forEach((ch, x) => { const Y = fr.headTop - 8 + y; if (ch !== ' ' && Y >= 0) out.push([fr.cx - 5 + x, Y, ch === '#' ? '#e6eaf0' : ch === 'r' ? '#d0414f' : '#2e323c']); }));
   return out;
+};
+// ── action clips from per-frame keys ──
+// Each frame gives `side` (hand at [x, y] as if facing E; mirrored for W) and
+// `front` (hands A/B at [x, y] seen from the S; mirrored for N), a tool angle
+// `ang` (degrees, 90 = up; side angles as if facing E) and body extras. N frames
+// hold the tool behind him; `behind` hides it behind his body in S too.
+const mx = ([x, y]) => [31 - x, y];
+const action = ({ dirs = ALL, fps, loop, contact, held, keys, face }) => {
+  const posesFor = (d) => keys.map((k) => {
+    const side = d === 'E' || d === 'W';
+    const K = side ? k.side : k.front; const flip = d === 'W' || d === 'N';
+    const at = side ? { A: flip ? mx(K.at) : K.at } : { A: flip ? mx(K.A) : K.A, ...(K.B ? { B: flip ? mx(K.B) : K.B } : {}) };
+    return { at, ...(K.armsFront ? { armsFront: true } : {}), ...(k.body ?? {}), ...(K.body ?? {}) };
+  });
+  const angleOf = (fr) => { const k = keys[fr.f]; const side = fr.d === 'E' || fr.d === 'W'; const K = side ? k.side : k.front; return { ang: K.ang, behind: K.behind }; };
+  return { dirs, fps, loop, contact, face, poses: posesFor,
+    ...(held ? { overlays: Object.fromEntries([held].flat().map((h) => [`held.${h}`, (fr) => { const { ang, behind } = angleOf(fr); if (ang === undefined || ang === null) return []; return tool(fr, h, fr.d === 'N' ? 180 - ang : ang, { behind }); }])) } : {}) };
+};
+// the load he tips into the converter: a green bundle of cuttings between his hands
+const load = (fr) => {
+  const a = fr.hands?.A, b = fr.hands?.B; if (!a || !b) return [];
+  const cx = (a.x + b.x) >> 1, y0 = Math.min(a.y, b.y) - (fr.f === 3 ? 6 : 4);
+  return sack(cx - 3, y0, cx + 3, y0 + 4, { hi: '#86b36c', mid: '#67985a', lo: '#4a7a4b', line: '#263a33' });
 };
 const range = (n, fn) => Array.from({ length: n }, (_, f) => fn(f));
 
@@ -115,6 +140,8 @@ export const CLIPS = {
     poses: (d) => range(8, (f) => ({ ...walkPose(f), handA: 0, handB: 0, armDx: 0,
       ...(d === 'E' || d === 'W' ? { lean: 1, arm: { dx: -4, dy: 3 } } : d === 'N' ? both(1, -1) : both(1, 3)) })) },
 
+  // ── group 3: working ──
+  // overhead chop/mine (axe, pick, hammer-break): one body, the held overlay differs
   // sitting on whatever is under him (bench, log, stump): hips down 3, breathing 1 px
   // (hands come up onto the lap — hanging to the feet read as a crouch)
   sit: { dirs: ['S', 'N'], fps: 2, loop: true, poses: [{ bob: 3, ...lap(3) }, { bob: 4, ...lap(3) }] },
@@ -130,3 +157,83 @@ export const CLIPS = {
     poses: [{ bob: 3, ...lap(3) }, { bob: 2, ...both(3, 5) }, { ...both(6, 10), armsFront: true }, { ...both(6, 10), armsFront: true }, { ...both(6, 10), armsFront: true }, { ...both(6, 10), armsFront: true }, { headDx: 1, ...both(2, 2) }],
     face: ['closed', 'blink', 'happy', 'happy', 'closed', 'happy', null] },
 };
+
+// ── group 3: working ──────────────────────────────────────────────────────────
+const HEAVY = [ // ready, wind up over the shoulder, top (tool behind his head), coming down, contact (f4), recover
+  { side: { at: [21, 34], ang: 45 }, front: { A: [14, 36], B: [17, 36], ang: 90 } },
+  { side: { at: [15, 25], ang: 135, armsFront: true }, front: { A: [9, 29], B: [12, 29], ang: 90, behind: true } },
+  { side: { at: [13, 21], ang: 180, armsFront: true, behind: true }, front: { A: [8, 26], B: [11, 26], ang: 90, armsFront: true, behind: true } },
+  { side: { at: [20, 26], ang: 45, armsFront: true }, front: { A: [13, 31], B: [16, 31], ang: 90 } },
+  { side: { at: [23, 37], ang: 315, body: { lean: 1 } }, front: { A: [14, 38], B: [17, 38], ang: 270 } },
+  { side: { at: [21, 35], ang: 0 }, front: { A: [14, 36], B: [17, 36], ang: 90 } },
+];
+const LIGHT = [ // a low side sweep (cut, reap): back, start, through, contact (f3), follow, recover
+  { side: { at: [13, 35], ang: 225 }, front: { A: [5, 35], ang: 225 } },
+  { side: { at: [12, 33], ang: 180 }, front: { A: [5, 33], ang: 180 } },
+  { side: { at: [17, 36], ang: 270 }, front: { A: [10, 38], ang: 270 } },
+  { side: { at: [22, 37], ang: 315, body: { lean: 1 } }, front: { A: [16, 39], ang: 315 } },
+  { side: { at: [24, 35], ang: 0 }, front: { A: [22, 37], ang: 0 } },
+  { side: { at: [21, 35], ang: 315 }, front: { A: [12, 37], ang: 270 } },
+];
+const DIG = [ // ready, lift, drive in, stand on it, lever up (contact f4), toss over the shoulder
+  { side: { at: [21, 35], ang: 270 }, front: { A: [14, 34], B: [17, 34], ang: 270 } },
+  { side: { at: [21, 30], ang: 270 }, front: { A: [14, 30], B: [17, 30], ang: 270 } },
+  { side: { at: [21, 36], ang: 270 }, front: { A: [14, 36], B: [17, 36], ang: 270 }, body: { bob: 1 } },
+  { side: { at: [22, 37], ang: 270, body: { lean: 1 } }, front: { A: [14, 37], B: [17, 37], ang: 270 }, body: { bob: 1 } },
+  { side: { at: [20, 33], ang: 315 }, front: { A: [13, 33], B: [16, 33], ang: 315 } },
+  { side: { at: [15, 25], ang: 135, armsFront: true }, front: { A: [9, 27], B: [12, 27], ang: 135, behind: true } },
+];
+const HAMMER = [ // build: raise, up, top, down, strike (contact f4), lift — loops
+  { side: { at: [21, 34], ang: 45 }, front: { A: [10, 34], ang: 90 } },
+  { side: { at: [17, 27], ang: 90, armsFront: true }, front: { A: [7, 28], ang: 90 } },
+  { side: { at: [15, 24], ang: 135, armsFront: true }, front: { A: [6, 25], ang: 135, armsFront: true } },
+  { side: { at: [20, 28], ang: 45, armsFront: true }, front: { A: [9, 30], ang: 45 } },
+  { side: { at: [23, 37], ang: 315, body: { lean: 1 } }, front: { A: [12, 38], ang: 315 } },
+  { side: { at: [21, 35], ang: 0 }, front: { A: [10, 35], ang: 45 } },
+];
+const both2 = (a, b) => ({ A: a, B: b });
+Object.assign(CLIPS, {
+  // overhead two-hand swing; the same body for axe, pick and hammer-break — held.<tool> differs
+  'swing.heavy': action({ fps: 8, loop: false, contact: [4], held: ['axe', 'pick'], keys: HEAVY }),
+  'swing.light': action({ fps: 10, loop: false, contact: [3], held: 'sickle', keys: LIGHT }),
+  dig: action({ fps: 7, loop: false, contact: [4], held: 'shovel', keys: DIG }),
+  build: action({ fps: 7, loop: true, contact: [4], held: 'hammer', keys: HAMMER }),
+  // bend, reach, grip, straighten with it (contact f3)
+  pluck: action({ fps: 8, loop: false, contact: [3], keys: [
+    { side: { at: [21, 38] }, front: both2([11, 40], [20, 40]), body: { bob: 2 } },
+    { side: { at: [23, 43], body: { lean: 1 } }, front: both2([12, 44], [19, 44]), body: { bob: 2 } },
+    { side: { at: [23, 43], body: { lean: 1 } }, front: both2([13, 44], [18, 44]), body: { bob: 2 } },
+    { side: { at: [20, 32] }, front: both2([13, 33], [18, 33]) },
+  ] }),
+  // crouch, both hands down, lift (contact f3), stand holding it at the chest
+  pick_up: action({ fps: 8, loop: false, contact: [3], keys: [
+    { side: { at: [21, 40] }, front: both2([11, 41], [20, 41]), body: { bob: 3 } },
+    { side: { at: [23, 44], body: { lean: 1 } }, front: both2([13, 45], [18, 45]), body: { bob: 3 } },
+    { side: { at: [21, 38] }, front: both2([13, 39], [18, 39]), body: { bob: 1 } },
+    { side: { at: [20, 33] }, front: both2([13, 34], [18, 34]) },
+  ] }),
+  // holding it at the chest, lower it, let go (contact f2), hands back
+  drop: action({ fps: 8, loop: false, contact: [2], keys: [
+    { side: { at: [20, 33] }, front: both2([13, 34], [18, 34]) },
+    { side: { at: [22, 40] }, front: both2([12, 40], [19, 40]), body: { bob: 1 } },
+    { side: { at: [23, 41] }, front: both2([10, 41], [21, 41]), body: { bob: 1 } },
+    { side: { at: [20, 37] }, front: both2([9, 38], [22, 38]) },
+  ] }),
+  // marks out a blueprint's footprint: arms out wide, up, sweep in, point down (contact f3)
+  place_footprint: action({ fps: 6, loop: false, contact: [3], keys: [
+    { side: { at: [24, 34] }, front: both2([4, 35], [27, 35]) },
+    { side: { at: [24, 28], armsFront: true }, front: both2([4, 29], [27, 29]) },
+    { side: { at: [25, 33] }, front: both2([9, 34], [22, 34]) },
+    { side: { at: [25, 40], body: { lean: 1 } }, front: both2([12, 41], [19, 41]), body: { bob: 1 } },
+  ] }),
+  // done! steps back, both arms up, a hop at the peak (contact f3), settles — happy face
+  'build.complete': { dirs: ALL, fps: 6, loop: false, contact: [3], airborne: true,
+    poses: (d) => { const side = d === 'E' || d === 'W'; const up = side ? { arm: { dx: 2, dy: 12 }, armsFront: true } : { ...both(6, 10), armsFront: true };
+      return [{}, side ? { lean: -1, bob: 1 } : { bob: 1 }, up, { ...up, hop: 2 }, up, {}]; },
+    face: [null, 'happy', 'happy', 'happy', 'happy', 'happy'] },
+  // tips a load into the converter's hopper: lift, raise, tip (contact f3), shake, lower — S only
+  convert: { ...action({ dirs: ['S'], fps: 6, loop: false, contact: [3], keys: [
+    { front: both2([12, 38], [19, 38]) }, { front: both2([12, 33], [19, 33]) }, { front: { ...both2([12, 28], [19, 28]), armsFront: true } },
+    { front: { ...both2([12, 24], [19, 24]), armsFront: true } }, { front: { ...both2([11, 25], [20, 25]), armsFront: true } }, { front: both2([12, 36], [19, 36]) },
+  ] }), overlays: { 'held.load': (fr) => (fr.f <= 3 ? load(fr) : []) } },
+});

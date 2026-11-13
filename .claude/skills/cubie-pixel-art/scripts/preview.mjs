@@ -18,7 +18,7 @@ import { blank, readPng } from './png.mjs';
 import { STRIP_KEY, crop, hexRgb, meadow, nightTint, over } from './lib.mjs';
 
 /** One finished frame (body + face + strip tint + emissive) and its glow mask. */
-export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9' } = {}) {
+export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9', held = null } = {}) {
   const j = JSON.parse(fs.readFileSync(path.join(dir, `${clip}.json`), 'utf8'));
   const r = (j.dirs ?? ['S', 'W', 'E', 'N']).indexOf(d); const { w, h } = j.frame;
   const body = crop(readPng(path.join(dir, `${clip}.png`)), f * w, r * h, w, h);
@@ -45,7 +45,10 @@ export function composite(dir, clip, d, f, { face = 'idle', strip = '#27d4c9' } 
   over(body, glow, 0, 0);
   const ovRe = new RegExp(`^${clip.replace(/\./g, '\\.')}\\.(back|held|status|front)\\.[a-z0-9_]+\\.png$`);
   const order = { back: 0, held: 1, status: 2, front: 3 };
-  for (const f2 of fs.readdirSync(dir).filter((x) => ovRe.test(x)).sort((p, q) => order[p.split('.').at(-3)] - order[q.split('.').at(-3)])) {
+  // a clip may offer several held tools (the renderer shows the one he holds): show `held`, else the first
+  const files = fs.readdirSync(dir).filter((x) => ovRe.test(x)).sort();
+  const helds = files.filter((x) => x.split('.').at(-3) === 'held'); const pick = held ? helds.find((x) => x.endsWith(`.held.${held}.png`)) : helds[0];
+  for (const f2 of files.filter((x) => x.split('.').at(-3) !== 'held' || x === pick).sort((p, q) => order[p.split('.').at(-3)] - order[q.split('.').at(-3)])) {
     const o = crop(readPng(path.join(dir, f2)), f * w, r * h, w, h);
     over(body, o, 0, 0);
     for (let i = 3; i < o.data.length; i += 4) if (o.data[i]) glow.data[i] = 0;
