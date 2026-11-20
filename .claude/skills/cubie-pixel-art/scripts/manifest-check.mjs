@@ -32,7 +32,7 @@ export function checkRows(rows, folder, where) {
     const id = r.id;
     if (!id) { E(null, 'row without id'); continue; }
     if (seen.has(id)) E(id, 'duplicate id'); seen.add(id);
-    if (!/^[a-z0-9][a-z0-9_.-]*$/.test(String(id))) E(id, 'id must be lower-case letters, digits, _ . -');
+    if (!/^[a-z0-9][a-z0-9_.-]*(@[a-z0-9_]+)?$/.test(String(id))) E(id, 'id must be lower-case letters, digits, _ . - (plus @<kit> for a leg-kit variant)');
     if (!LAYERS.includes(r.layer)) E(id, `layer "${r.layer}" is not one of ${LAYERS.join('|')}`);
     if (!LOOSE.has(r.layer)) {
       if (!Array.isArray(r.size) || r.size.length !== 2 || !r.size.every((n) => Number.isInteger(n) && n > 0)) E(id, 'size must be [w, h] in whole tiles');

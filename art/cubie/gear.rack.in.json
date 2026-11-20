@@ -1,0 +1,93 @@
+{
+ "clip": "gear.rack.in",
+ "frame": {
+  "w": 32,
+  "h": 48
+ },
+ "count": 4,
+ "fps": 6,
+ "loop": false,
+ "dirs": [
+  "S"
+ ],
+ "airborne": true,
+ "worn": [
+  "back.battery_pack",
+  "back.cargo_frame",
+  "tint.wet",
+  "status.wet",
+  "top.hard_hat",
+  "top.sun_hat",
+  "visor.sun_visor",
+  "outfit.apron",
+  "outfit.rain_poncho",
+  "outfit.tool_belt",
+  "outfit.boots"
+ ],
+ "anchors": {
+  "face": {
+   "S": [
+    [
+     7,
+     16
+    ],
+    [
+     7,
+     15
+    ],
+    [
+     7,
+     17
+    ],
+    [
+     7,
+     16
+    ]
+   ]
+  },
+  "hands": {
+   "S": [
+    {
+     "A": [
+      7,
+      39
+     ],
+     "B": [
+      23,
+      39
+     ]
+    },
+    {
+     "A": [
+      7,
+      38
+     ],
+     "B": [
+      23,
+      38
+     ]
+    },
+    {
+     "A": [
+      5,
+      34
+     ],
+     "B": [
+      25,
+      34
+     ]
+    },
+    {
+     "A": [
+      4,
+      28
+     ],
+     "B": [
+      26,
+      28
+     ]
+    }
+   ]
+  }
+ }
+}

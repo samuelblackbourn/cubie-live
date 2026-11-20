@@ -1,0 +1,15 @@
+# The habitat pod's fixtures (interior slice, decision 29). Drawn in code:
+# art/src/cubie/rack.mjs. Gear test (docs/design/08-gear.md §5).
+- id: gear_rack
+  layer: structure
+  biomes: [pod]
+  size: [2, 2]
+  states: [idle, working]
+  variants: []
+  block: true
+  overhead_rows: 0
+  emissive: true
+  light: {radius: 2, colour: "#ffd37a"}
+  placeholder: true
+  licence: original
+  author: "the creator"

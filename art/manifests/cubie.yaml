@@ -2,9 +2,12 @@
 # from model O (art/src/cubie/model.mjs) by art/src/cubie/build.mjs — the build is
 # the source of truth; re-run it, never touch up a PNG. PixelLab is not used for
 # Cubie (ruling 60, 2026-11-13, reversing decision 20 for Cubie only).
-# Overlays per clip: <clip>.<tint|back|held|status|front>.<name>.png (+ _emissive when
+# Overlays per clip: <clip>.<tint|outfit|back|held|status|visor|top|front>.<name>.png (+ _emissive when
 # it glows). `worn` overlays show only when his state says so (packs, wet, a carried
 # tool); the rest always ride the clip.
+# Gear test (docs/design/08-gear.md): leg-kit clips <clip>@<kit> (32×64), use.spyglass
+# and gear.rack.* are placeholder; the starter gear rides every clip as worn overlays
+# (outfit.*, top.*, visor.*).
 - id: idle
   layer: character
   clip: idle
@@ -13,7 +16,7 @@
   loop: true
   dirs: [S, W, E, N]
   overlays: []
-  worn: [held.axe, held.pick, held.shovel, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  worn: [held.axe, held.pick, held.shovel, held.map_board, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
   emissive: true
   placeholder: false
   licence: original
@@ -27,7 +30,7 @@
   contact: [1, 5]
   dirs: [S, W, E, N]
   overlays: []
-  worn: [held.axe, held.pick, held.shovel, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  worn: [held.axe, held.pick, held.shovel, held.map_board, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
   emissive: true
   placeholder: false
   licence: original
@@ -85,6 +88,20 @@
   worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
   emissive: true
   placeholder: false
+  licence: original
+  author: "the creator"
+- id: dash@rocket_legs
+  layer: character
+  clip: dash@rocket_legs
+  frames: 4
+  fps: 12
+  loop: true
+  contact: [0, 2]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
   licence: original
   author: "the creator"
 - id: dig
@@ -168,6 +185,60 @@
   placeholder: false
   licence: original
   author: "the creator"
+- id: gear.rack.in
+  layer: character
+  clip: gear.rack.in
+  frames: 4
+  fps: 6
+  loop: false
+  dirs: [S]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"
+- id: gear.rack.out
+  layer: character
+  clip: gear.rack.out
+  frames: 6
+  fps: 8
+  loop: false
+  dirs: [S]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"
+- id: gear.rack.swap
+  layer: character
+  clip: gear.rack.swap
+  frames: 6
+  fps: 6
+  loop: false
+  contact: [3]
+  dirs: [S]
+  overlays: [status.sparks]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"
+- id: hop@rocket_legs
+  layer: character
+  clip: hop@rocket_legs
+  frames: 6
+  fps: 10
+  loop: false
+  contact: [1, 5]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"
 - id: idle.fidget
   layer: character
   clip: idle.fidget
@@ -244,6 +315,47 @@
   worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
   emissive: true
   placeholder: false
+  licence: original
+  author: "the creator"
+- id: idle@rocket_legs
+  layer: character
+  clip: idle@rocket_legs
+  frames: 4
+  fps: 4
+  loop: true
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [held.axe, held.pick, held.shovel, held.map_board, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"
+- id: legs.extend@rocket_legs
+  layer: character
+  clip: legs.extend@rocket_legs
+  frames: 4
+  fps: 8
+  loop: false
+  contact: [3]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"
+- id: legs.retract@rocket_legs
+  layer: character
+  clip: legs.retract@rocket_legs
+  frames: 4
+  fps: 8
+  loop: false
+  contact: [3]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
   licence: original
   author: "the creator"
 - id: paddle
@@ -489,6 +601,19 @@
   placeholder: false
   licence: original
   author: "the creator"
+- id: use.spyglass
+  layer: character
+  clip: use.spyglass
+  frames: 6
+  fps: 5
+  loop: false
+  dirs: [S, W, E, N]
+  overlays: [front.arms, front.spyglass]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
+  licence: original
+  author: "the creator"
 - id: wade
   layer: character
   clip: wade
@@ -557,6 +682,20 @@
   worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
   emissive: true
   placeholder: false
+  licence: original
+  author: "the creator"
+- id: walk@rocket_legs
+  layer: character
+  clip: walk@rocket_legs
+  frames: 8
+  fps: 13
+  loop: true
+  contact: [1, 5]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [held.axe, held.pick, held.shovel, held.map_board, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: true
   licence: original
   author: "the creator"
 - id: workbench

@@ -34,6 +34,7 @@
 //   headTurn   S | N | E | W — the head turned on the body (look around)
 //   antennaDx  antenna bent sideways by n px; antennaLift  antenna stretched up by n px
 import { Layer } from '../../../.claude/skills/cubie-pixel-art/scripts/pix.mjs';
+import { GEAR_RAMPS } from '../../../.claude/skills/cubie-pixel-art/scripts/lib.mjs';
 
 export const W = 32, H = 48;
 export const RAMPS = {
@@ -55,7 +56,26 @@ const OFF = { bobbleHi: '#9aa3b1', bobble: '#6b7382', led: '#4d5361' };
 // (side near arm one column back, back vent up on the dome).
 export const O = { headW: 24, headD: 16, headTop: 7, headF: 13, neck: 0, torsoW: 10, torsoD: 8, torsoTop: 3, torsoF: 8, legH: 6, foot: 3, armDrop: 1, screenW: 18, screenH: 11, domeR: 4, ear: 'metal', hand: 'nub', sideArm: true, vent: true };
 
-const mk = () => new Layer(W, H, RAMPS, OUT);
+// leg kits (gear §3.2) draw on the gear palette's ramps; the frame can be taller (32×64)
+const GEAR = { orange: GEAR_RAMPS.orange, copper: GEAR_RAMPS.copper };
+const GEAR_OUT = { orange: GEAR_RAMPS.orange[5], copper: GEAR_RAMPS.copper[5] };
+const FLAME = ['#fff1a8', '#ffd95a', '#ffc27a', '#ff9a3c']; // gear glow; the orange band below keeps to the ramp's darker steps
+let FH = H; // the frame height of the drawing in progress (model.frameH)
+/** A Layer that also records which body part each pixel is (L.part at the time it is set): the part map gear draws on (gear §5). */
+const mk = () => {
+  const L = new Layer(W, FH, { ...RAMPS, ...GEAR }, { ...OUT, ...GEAR_OUT }); L.part = null;
+  L.set = function set(x, y, m, t = null) { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.g[y][x] = m ? { m, t, part: this.part } : null; };
+  L.fxPart = Array.from({ length: FH }, () => Array(W).fill(null)); const setFx = L.setFx.bind(L);
+  L.setFx = function sfx(x, y, c) { setFx(x, y, c); x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.fxPart[y][x] = c ? this.part : null; };
+  return L;
+};
+/** The part map of a rendered layer: each pixel's part, outline pixels taking the neighbour render() took their colour from. */
+function partMap(L, rows) {
+  return rows.map((row, y) => row.map((c, x) => {
+    if (!c) return null; if (L.fx[y][x]) return L.fxPart[y][x] ?? 'fx'; const p = L.g[y][x]; if (p) return p.part;
+    const n = L.get(x, y + 1) ?? L.get(x, y - 1) ?? L.get(x + 1, y) ?? L.get(x - 1, y); return n ? n.part : 'fx';
+  }));
+}
 
 // ---- shapes (unchanged from turnaround.mjs) ----------------------------------
 function box(L, x0, y0, x1, y1, top, m = 'metal', shade = 0, r = 0) {
@@ -94,9 +114,35 @@ function glow(L, ctx, x, y, lit, off) {
   L.setFx(x, y, off); ctx.em.push([x, y, lit]);
 }
 
+/** leg length: a leg kit extends from his own 6 px by pose.kitExt (0 = folded cuffs, 1 = full; default full) */
+const legLen = (p, pose) => (p.legKit ? O.legH + Math.round((p.legH - O.legH) * (pose.kitExt ?? 1)) : p.legH);
+/**
+ * Rocket legs (gear §3.2) over a leg already drawn at x0..x1, y0..y1: his own leg shows
+ * for 3 px under the hip, then a dark sleeve with an orange band, and a thruster cuff
+ * at the ankle with a nozzle on the outer side (front) or behind the heel (side).
+ * pose.thrust (0–2) lights flame on the emissive layer: down from the nozzles from the
+ * front and back, backwards along the ground from the side.
+ */
+function rocketLeg(L, ctx, pose, x0, x1, y0, y1, nozzleX, outward, footY1, side) {
+  const ky0 = y0 + 3;
+  for (let y = ky0; y <= y1; y++) for (let x = x0; x <= x1; x++) L.set(x, y, 'dark', x === x0 ? 1 : x === x1 ? 3 : 2);
+  if (y1 - ky0 >= 5) for (const y of [ky0 + 1, ky0 + 2]) for (let x = x0; x <= x1; x++) L.set(x, y, 'orange', y === ky0 + 1 ? (x === x1 ? 3 : 2) : (x === x1 ? 4 : 3));
+  for (let y = y1 - 1; y <= y1; y++) for (let x = x0 - 1; x <= x1 + 1; x++) L.set(x, y, 'dark', y === y1 - 1 ? 2 : 3);
+  // the thruster pod: 2 px wide, 3 tall, on the outer side of the ankle (behind the heel from the side)
+  const px = [nozzleX, nozzleX - outward]; const py0 = y1 - 2;
+  for (const x of px) for (let y = py0; y <= y1; y++) L.set(x, y, y === py0 ? 'orange' : 'dark', y === py0 ? 3 : y === y1 ? 4 : (x === nozzleX ? 3 : 2));
+  const n = pose.thrust ?? 0; if (!n) return;
+  if (side) { // backwards from the pod, flaring down at the end
+    for (let i = 1; i <= 2 + 2 * n; i++) for (const dy of [-1, 0]) { const x = nozzleX + outward * i, y = y1 + dy + (i > 3 ? 1 : 0); if (dy === -1 && i > 2) continue; ctx.em.push([x, y, FLAME[Math.min(FLAME.length - 1, i - 1)]]); }
+  } else { // straight down from the pod, past the foot
+    const len = footY1 - y1 + 2 + 2 * n;
+    for (let i = 1; i <= len; i++) for (const x of px) { if (x !== nozzleX && i > len - 2) continue; const y = y1 + i; ctx.em.push([x, y, FLAME[Math.min(FLAME.length - 1, Math.floor((i - 1) * FLAME.length / len))]]); }
+  }
+}
+
 function layout(p, pose) {
-  const footY1 = H - 1, footY0 = footY1 - p.foot + 1;
-  const legY1 = footY0 - 1, legY0 = legY1 - (p.legH - (pose.bob ?? 0)) + 1;
+  const footY1 = FH - 1, footY0 = footY1 - p.foot + 1;
+  const legY1 = footY0 - 1, legY0 = legY1 - (legLen(p, pose) - (pose.bob ?? 0)) + 1;
   const torY1 = legY0 - 1, torY0 = torY1 - (p.torsoTop + p.torsoF) + 1;
   const neckY1 = torY0 - 1, neckY0 = neckY1 - p.neck + 1;
   const headY1 = neckY0 - 1, headY0 = headY1 - (p.headTop + p.headF) + 1;
@@ -176,6 +222,7 @@ function sideFace(L, face, dir, fx1, sy0, sh) {
 
 // ---- head ------------------------------------------------------------------
 function head(L, g, face, ctx) {
+  L.part = 'head';
   const cx = g.cx; const hx0 = cx - g.headW / 2, hx1 = cx + g.headW / 2 - 1;
   box(L, hx0, g.headY0, hx1, g.headY1, g.headTop, 'metal', 0, 3);
   if (g.domeR) round(L, hx0, g.headY0, hx1, g.headY0 + 2 * g.domeR, g.domeR);
@@ -184,10 +231,11 @@ function head(L, g, face, ctx) {
   if (face !== null) {
     const sx0 = cx - g.screenW / 2, sx1 = sx0 + g.screenW - 1;
     const sy0 = g.headY0 + g.headTop + Math.floor((g.headF - g.screenH) / 2), sy1 = sy0 + g.screenH - 1;
+    L.part = 'screen';
     L.rect(sx0 - 1, sy0 - 1, sx1 + 1, sy1 + 1, 'dark', (x, y) => (y === sy0 - 1 ? 3 : 4)); round(L, sx0 - 1, sy0 - 1, sx1 + 1, sy1 + 1, 2);
     L.rect(sx0, sy0, sx1, sy1, 'screen', (x, y) => (y === sy0 && x < sx1 - 1 ? 1 : x === sx0 ? 1 : 2)); round(L, sx0, sy0, sx1, sy1, 1);
     for (const [x, y] of [[sx0, sy0], [sx1, sy0], [sx0, sy1], [sx1, sy1]]) L.set(x, y, 'dark', 4);
-    ctx.screen = { x: sx0, y: sy0, w: g.screenW, h: g.screenH };
+    ctx.screen = { x: sx0, y: sy0, w: g.screenW, h: g.screenH }; L.part = 'head';
     if (ctx.mode === 'approved' || ctx.drawFace) {
       const band = Math.min(8, g.screenH), oy = Math.floor((g.screenH - band) / 2);
       FACES[face](L, sx0, sy0 + oy, g.screenW, band);
@@ -199,6 +247,9 @@ function head(L, g, face, ctx) {
   }
 }
 function antenna(L, ctx, x, y, lift = ctx.antLift ?? 0) {
+  const was = L.part; L.part = 'antenna'; antennaDraw(L, ctx, x, y, lift); L.part = was;
+}
+function antennaDraw(L, ctx, x, y, lift) {
   if (ctx.antDx) { // bent: stem leans, bobble sits one column over
     L.rect(x, y - 1, x, y - 1, 'dark', 2); L.rect(x + ctx.antDx, y - 2 - lift, x + ctx.antDx, y - 2, 'dark', 2); x += ctx.antDx;
     for (const [px, py] of [[x - 1, y - 4 - lift], [x, y - 4 - lift], [x - 1, y - 3 - lift], [x, y - 3 - lift]]) { const hi = px === x - 1 && py === y - 4 - lift; glow(L, ctx, px, py, hi ? PINK[0] : PINK[1], hi ? OFF.bobbleHi : OFF.bobble); }
@@ -234,7 +285,8 @@ function nubAt(L, x, y, up) { const y0 = up ? y - 2 : y; for (let i = 0; i < 3; 
 // ---- body, S and N -----------------------------------------------------------
 function body(L, g, front, pose, ctx) {
   const cx = g.cx + (pose.bodyDx ?? 0);
-  if (!front && (pose.armA || pose.armB || pose.at)) frontArms(L, g, pose, ctx, cx); // far-side arms first (see below)
+  L.part = 'arms'; if (!front && (pose.armA || pose.armB || pose.at)) frontArms(L, g, pose, ctx, cx); // far-side arms first (see below)
+  L.part = 'torso';
   L.rect(cx - 2, g.neckY0, cx + 1, g.neckY1, 'dark', 3);
   const tx0 = cx - g.torsoW / 2, tx1 = cx + g.torsoW / 2 - 1;
   box(L, tx0, g.torY0, tx1, g.torY1, g.torsoTop, 'metal', 0, 2);
@@ -255,12 +307,15 @@ function body(L, g, front, pose, ctx) {
   // from behind, arms reaching forward are on the far side of him: drawn first, the torso
   // and battery pack go over them (only hands past his sides show)
   const posed = pose.armA || pose.armB || pose.at;
-  if (!(posed && !front) && !pose.armsFront) frontArms(L, g, pose, ctx, cx);
+  L.part = 'arms'; if (!(posed && !front) && !pose.armsFront) frontArms(L, g, pose, ctx, cx);
   const lw = 3, gap = 2;
   const l0 = g.cx - gap / 2 - lw, r0 = g.cx + gap / 2;
-  for (const [x, lift] of [[l0, pose.liftA ?? 0], [r0, pose.liftB ?? 0]]) {
+  for (const [x, lift, out] of [[l0, pose.liftA ?? 0, -1], [r0, pose.liftB ?? 0, 1]]) {
+    L.part = 'legs';
     L.rect(x, g.legY0, x + lw - 1, g.legY1 - lift, 'metal', (xx) => (xx === x ? 1 : xx === x + lw - 1 ? 3 : 2));
     L.rect(x, g.legY0, x + lw - 1, g.legY0, 'dark', 3);
+    if (g.legKit === 'rocket') rocketLeg(L, ctx, pose, x, x + lw - 1, g.legY0, g.legY1 - lift, out < 0 ? x - 3 : x + lw + 2, out, g.footY1 - lift, false);
+    L.part = 'feet';
     if (front) box(L, x - 2, g.footY0 - lift, x + lw + 1, g.footY1 - lift, g.foot - 1, 'dark', 0, 1);
     else box(L, x - 1, g.footY0 - lift, x + lw, g.footY1 - lift, g.foot - 2, 'dark', 0, 1);
   }
@@ -299,8 +354,8 @@ function south(p, face, pose, ctx) {
   body(L, g, true, pose, ctx);
   const h = headG(g, pose);
   turnedHead(L, g, pose, ctx, 'S', face, h.cx);
-  if (pose.armsFront) frontArms(L, g, pose, ctx, g.cx + (pose.bodyDx ?? 0));
-  if (pose.dots) dots(L, g, pose.dots, h.cx + 6);
+  L.part = 'arms'; if (pose.armsFront) frontArms(L, g, pose, ctx, g.cx + (pose.bodyDx ?? 0));
+  L.part = 'fx'; if (pose.dots) dots(L, g, pose.dots, h.cx + 6);
   return L;
 }
 function north(p, pose, ctx, face = 'idle') {
@@ -308,6 +363,7 @@ function north(p, pose, ctx, face = 'idle') {
   body(L, g, false, pose, ctx);
   const h = headG(g, pose);
   turnedHead(L, g, pose, ctx, 'N', face, h.cx);
+  L.part = 'fx';
   // (from behind, raised or reaching arms are on his far side: never drawn over the head)
   if (pose.dots) dots(L, g, pose.dots, h.cx - 10);
   return L;
@@ -351,12 +407,14 @@ function sideArm(L, g, pose, ctx, dir, F, span) {
 function sideHead(L, g, dir, face, ctx, hc) {
   const H2 = (dx) => Math.round(hc + dir * dx); const span = (p, q) => [Math.min(p, q), Math.max(p, q)];
   const [hx0, hx1] = span(H2(-g.headD / 2), H2(g.headD / 2 - 1));
+  L.part = 'head';
   box(L, hx0, g.headY0, hx1, g.headY1, g.headTop, 'metal', 0, 3);
   const fx1 = dir > 0 ? hx1 : hx0, fx0 = fx1 - dir * 3;
   const [scx0, scx1] = span(fx0, fx1);
   const sy0 = g.headY0 + g.headTop + Math.floor((g.headF - g.screenH) / 2), sy1 = sy0 + g.screenH - 1;
+  L.part = 'screen';
   L.rect(scx0, sy0 - 1, scx1, sy1 + 1, 'dark', 4); round(L, scx0, sy0 - 1, scx1, sy1 + 1, 1);
-  L.rect(scx0, sy0, scx1, sy1, 'screen', (x, y) => (y === sy0 ? 1 : 2));
+  L.rect(scx0, sy0, scx1, sy1, 'screen', (x, y) => (y === sy0 ? 1 : 2)); L.part = 'head';
   for (const [x, y] of [[scx0, sy0 - 1], [scx1, sy0 - 1], [scx0, sy1 + 1], [scx1, sy1 + 1]]) if (!L.get(x, y)) L.set(x, y, 'metal', 2);
   ctx.screen = { x: scx0, y: sy0, w: scx1 - scx0 + 1, h: g.screenH, kind: dir > 0 ? 'E' : 'W' };
   if (ctx.mode === 'approved' || ctx.drawFace) { const band = Math.min(8, g.screenH); sideFace(L, face, dir, fx1, sy0 + Math.floor((g.screenH - band) / 2) - 2, band); }
@@ -378,32 +436,41 @@ function sideView(p, dir, face, pose, ctx) {
   const F = (dx) => Math.round(cx + dir * dx); const G = (dx) => Math.round(g.cx + dir * dx); // F: upper body, G: legs
   const span = (a, b) => [Math.min(a, b), Math.max(a, b)];
   const dA = pose.dxA ?? 0, dB = pose.dxB ?? 0, lA = pose.liftA ?? 0, lB = pose.liftB ?? 0;
+  L.part = 'torso';
   L.rect(cx - 2, g.neckY0, cx + 1, g.neckY1, 'dark', 3);
   const [tx0, tx1] = span(F(-g.torsoD / 2), F(g.torsoD / 2 - 1));
   const [fl0, fl1] = span(G(-4 + dB), G(-2 + dB)); const [nl0, nl1] = span(G(-1 + dA), G(1 + dA));
   const [ff0, ff1] = span(G(-5 + dB), G(0 + dB)); const [nf0, nf1] = span(G(-2 + dA), G(3 + dA));
   // far leg and foot (B), shaded
+  L.part = 'legs';
   L.rect(fl0, g.legY0, fl1, g.legY1 - lB, 'metal', 3); L.rect(fl0, g.legY0, fl1, g.legY0, 'dark', 3);
+  if (g.legKit === 'rocket') rocketLeg(L, ctx, pose, fl0, fl1, g.legY0, g.legY1 - lB, dir > 0 ? fl0 - 3 : fl1 + 3, -dir, g.footY1 - lB, true);
+  L.part = 'feet';
   box(L, ff0, g.footY0 - lB, ff1, g.footY1 - lB, g.foot - 1, 'dark', 1, 1);
   const torsoBox = () => {
+    const was = L.part; L.part = 'torso';
     box(L, tx0, g.torY0, tx1, g.torY1, g.torsoTop, 'metal', 0, 2);
     const ly = g.torY0 + g.torsoTop + 2;
     if (ctx.mode === 'approved') L.setFx(dir > 0 ? tx1 : tx0, ly, TEAL[1]); else { L.setFx(dir > 0 ? tx1 : tx0, ly, KEY); if (!ctx.em.some((e) => e[0] === (dir > 0 ? tx1 : tx0) && e[1] === ly)) ctx.em.push([dir > 0 ? tx1 : tx0, ly, KEY]); }
+    L.part = was;
   };
   torsoBox(); ctx.repaintTorso = torsoBox;
   const bx = dir > 0 ? tx0 - 1 : tx1 + 1; L.rect(bx, g.torY0 + 3, bx, g.torY1 - 1, 'metal', 4);
   // near leg and foot (A)
+  L.part = 'legs';
   ring(L, nl0, g.legY0, nl1, g.legY1 - lA);
   L.rect(nl0, g.legY0, nl1, g.legY1 - lA, 'metal', (x) => (x === (dir > 0 ? nl0 : nl1) ? 1 : x === (dir > 0 ? nl1 : nl0) ? 3 : 2)); L.rect(nl0, g.legY0, nl1, g.legY0, 'dark', 3);
+  if (g.legKit === 'rocket') rocketLeg(L, ctx, pose, nl0, nl1, g.legY0, g.legY1 - lA, dir > 0 ? nl0 - 3 : nl1 + 3, -dir, g.footY1 - lA, true);
+  L.part = 'feet';
   ring(L, nf0, g.footY0 - lA, nf1, g.footY1 - lA); box(L, nf0, g.footY0 - lA, nf1, g.footY1 - lA, g.foot - 1, 'dark', 0, 1);
   ctx.torso = { x0: tx0, y0: g.torY0, x1: tx1, y1: g.torY1 }; ctx.hands = {};
-  const nearArm = () => sideArm(L, g, pose, ctx, dir, F, span);
+  const nearArm = () => { L.part = 'arms'; sideArm(L, g, pose, ctx, dir, F, span); };
   if (!pose.armsFront) nearArm();
   const hc = cx + (pose.headDx ?? 0) * dir;
   turnedHead(L, g, pose, ctx, dir > 0 ? 'E' : 'W', face, hc);
   const H2 = (dx) => Math.round(hc + dir * dx);
   if (pose.armsFront) nearArm();
-  if (pose.dots) dots(L, g, pose.dots, H2(2));
+  L.part = 'fx'; if (pose.dots) dots(L, g, pose.dots, H2(2));
   return L;
 }
 
@@ -414,17 +481,21 @@ function sideView(p, dir, face, pose, ctx) {
  *   screen  where the face goes: { x, y, w, h } (null for N)
  */
 export function draw(dir, { face = 'idle', pose = {}, mode = 'clip', fix = {}, drawFace = false, model = O } = {}) {
+  FH = model.frameH ?? H;
   const ctx = { mode, fix, em: [], screen: null, hands: {}, drawFace, antDx: pose.antennaDx ?? 0, antLift: pose.antennaLift ?? 0 };
   const L = dir === 'S' ? south(model, face, pose, ctx) : dir === 'N' ? north(model, pose, ctx, face) : sideView(model, dir === 'E' ? 1 : -1, face, pose, ctx);
   const gl = layout(model, pose);
   let rows = L.render(), em = ctx.em, screen = ctx.screen, hands = ctx.hands, torso = ctx.torso; let headTop = gl.headY0;
+  let parts = partMap(L, rows);
   const hop = pose.hop ?? 0;
   if (hop) {
     rows = [...rows.slice(hop), ...Array.from({ length: hop }, () => Array(W).fill(null))];
-    em = em.map(([x, y, c]) => [x, y - hop, c]);
+    parts = [...parts.slice(hop), ...Array.from({ length: hop }, () => Array(W).fill(null))];
+    em = em.map(([x, y, c]) => [x, y - hop, c]).filter(([, y]) => y >= 0);
     if (screen) screen = { ...screen, y: screen.y - hop };
     hands = Object.fromEntries(Object.entries(hands ?? {}).map(([k, v]) => [k, { ...v, y: v.y - hop }]));
     torso = torso && { ...torso, y0: torso.y0 - hop, y1: torso.y1 - hop }; headTop -= hop;
   }
-  return { rows, em, screen, hands, torso, headTop, cx: W / 2 + (pose.bodyDx ?? 0) + (pose.headDx ?? 0) };
+  em = em.filter(([x, y]) => x >= 0 && x < W && y >= 0 && y < FH);
+  return { rows, parts, em, screen, hands, torso, headTop, headY1: gl.headY1 - hop, frameH: FH, cx: W / 2 + (pose.bodyDx ?? 0) + (pose.headDx ?? 0) };
 }
