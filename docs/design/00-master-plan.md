@@ -23,6 +23,7 @@ The build order for everything in `01-inner-life.md`, `02-assets.md`,
 | 52 | **Storage**: the Pi boots and stores on **NVMe** (a Pi 5 NVMe HAT), not SD. Off-Pi backups are still required — drives fail and Pis get knocked off desks. | Nightly encrypted snapshot of the vault + state to office-server (as a host) or B2; monthly restore test. |
 | 53 | **Scope**: a master plan with a go-live point; starter-island content only until live; later biomes, their assets, substances, vehicles beyond tier 2 and the audience economy come after. | This note. |
 | 54 | **The Pi pulls** — deploy and content logistics. | See §5. |
+| 60 | **Cubie's sprites are drawn in code, not by PixelLab** (2026-11-13). Reverses decision 20's "PixelLab primary" for Cubie only. | The art-02 base set (`art/cubie/`, built by `art/src/cubie/build.mjs` from model O) is final; new Cubie clips go into `clips.mjs`, never generated. PixelLab stays primary for tilesets and props. Rulings 55–59 live in the vault copy. |
 
 ## 1. Autopilot — what runs without the creator
 

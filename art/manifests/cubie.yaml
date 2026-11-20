@@ -1,15 +1,21 @@
-# Cubie's sprite sheets (art/cubie/). P2 placeholders from art-01, drawn in code
-# from model O (art/src/cubie/model.mjs, build.mjs); PixelLab makes the canonical
-# sheets in P3 against art/reference/cubie/. pass1/ and pass2/ are the
-# look-and-fix passes kept for review; the top level is pass 2.
+# Cubie's sprite sheets (art/cubie/): the base character, final (art-02). Drawn in code
+# from model O (art/src/cubie/model.mjs) by art/src/cubie/build.mjs — the build is
+# the source of truth; re-run it, never touch up a PNG. PixelLab is not used for
+# Cubie (ruling 60, 2026-11-13, reversing decision 20 for Cubie only).
+# Overlays per clip: <clip>.<tint|back|held|status|front>.<name>.png (+ _emissive when
+# it glows). `worn` overlays show only when his state says so (packs, wet, a carried
+# tool); the rest always ride the clip.
 - id: idle
   layer: character
   clip: idle
   frames: 4
   fps: 4
+  loop: true
   dirs: [S, W, E, N]
+  overlays: []
+  worn: [held.axe, held.pick, held.shovel, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
   emissive: true
-  placeholder: true
+  placeholder: false
   licence: original
   author: "the creator"
 - id: walk
@@ -17,17 +23,574 @@
   clip: walk
   frames: 8
   fps: 10
+  loop: true
   contact: [1, 5]
   dirs: [S, W, E, N]
+  overlays: []
+  worn: [held.axe, held.pick, held.shovel, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
   emissive: true
-  placeholder: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: build
+  layer: character
+  clip: build
+  frames: 6
+  fps: 7
+  loop: true
+  contact: [4]
+  dirs: [S, W, E, N]
+  overlays: [front.arms, held.hammer]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: build.complete
+  layer: character
+  clip: build.complete
+  frames: 6
+  fps: 6
+  loop: false
+  contact: [3]
+  dirs: [S, W, E, N]
+  overlays: [front.arms]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: celebrate
+  layer: character
+  clip: celebrate
+  frames: 6
+  fps: 8
+  loop: false
+  dirs: [S, W, E, N]
+  overlays: [front.arms]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: convert
+  layer: character
+  clip: convert
+  frames: 6
+  fps: 6
+  loop: false
+  contact: [3]
+  dirs: [S]
+  overlays: [front.arms, held.load]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: dig
+  layer: character
+  clip: dig
+  frames: 6
+  fps: 7
+  loop: false
+  contact: [4]
+  dirs: [S, W, E, N]
+  overlays: [front.arms, held.shovel]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: discover
+  layer: character
+  clip: discover
+  frames: 6
+  fps: 6
+  loop: false
+  dirs: [S, W, E, N]
+  overlays: [status.bang]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: drop
+  layer: character
+  clip: drop
+  frames: 4
+  fps: 8
+  loop: false
+  contact: [2]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: eat
+  layer: character
+  clip: eat
+  frames: 4
+  fps: 5
+  loop: false
+  contact: [2]
+  dirs: [S, W, E, N]
+  overlays: [front.arms, front.berry]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: enter
+  layer: character
+  clip: enter
+  frames: 4
+  fps: 8
+  loop: false
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: exit
+  layer: character
+  clip: exit
+  frames: 4
+  fps: 8
+  loop: false
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: idle.fidget
+  layer: character
+  clip: idle.fidget
+  frames: 6
+  fps: 6
+  loop: false
+  dirs: [S, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: idle.fidget.antenna
+  layer: character
+  clip: idle.fidget.antenna
+  frames: 6
+  fps: 6
+  loop: false
+  dirs: [S, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: idle.fidget.bounce
+  layer: character
+  clip: idle.fidget.bounce
+  frames: 8
+  fps: 8
+  loop: false
+  dirs: [S, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: idle.fidget.sway
+  layer: character
+  clip: idle.fidget.sway
+  frames: 8
+  fps: 5
+  loop: false
+  dirs: [S, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: idle.fidget.wipe
+  layer: character
+  clip: idle.fidget.wipe
+  frames: 8
+  fps: 6
+  loop: false
+  dirs: [S]
+  overlays: [front.arms]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: idle.look_around
+  layer: character
+  clip: idle.look_around
+  frames: 6
+  fps: 5
+  loop: false
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: paddle
+  layer: character
+  clip: paddle
+  frames: 8
+  fps: 6
+  loop: true
+  contact: [2, 6]
+  dirs: [S, W, E, N]
+  overlays: [held.paddle]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: pick_up
+  layer: character
+  clip: pick_up
+  frames: 4
+  fps: 8
+  loop: false
+  contact: [3]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: place_footprint
+  layer: character
+  clip: place_footprint
+  frames: 4
+  fps: 6
+  loop: false
+  contact: [3]
+  dirs: [S, W, E, N]
+  overlays: [front.arms]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: pluck
+  layer: character
+  clip: pluck
+  frames: 4
+  fps: 8
+  loop: false
+  contact: [3]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: pull
+  layer: character
+  clip: pull
+  frames: 8
+  fps: 8
+  loop: true
+  contact: [1, 5]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: recharge
+  layer: character
+  clip: recharge
+  frames: 4
+  fps: 3
+  loop: true
+  dirs: [S]
+  overlays: [status.bolts]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: recharge.wake
+  layer: character
+  clip: recharge.wake
+  frames: 7
+  fps: 6
+  loop: false
+  dirs: [S]
+  overlays: [front.arms]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: row
+  layer: character
+  clip: row
+  frames: 6
+  fps: 5
+  loop: true
+  contact: [3]
+  dirs: [S, W, E, N]
+  overlays: [held.oars]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: shuffle
+  layer: character
+  clip: shuffle
+  frames: 6
+  fps: 4
+  loop: true
+  contact: [1, 4]
+  dirs: [S, W, E, N]
+  overlays: [status.battery]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: sit
+  layer: character
+  clip: sit
+  frames: 2
+  fps: 2
+  loop: true
+  dirs: [S, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: sit.transition
+  layer: character
+  clip: sit.transition
+  frames: 2
+  fps: 8
+  loop: false
+  dirs: [S, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: sulk
+  layer: character
+  clip: sulk
+  frames: 4
+  fps: 3
+  loop: true
+  dirs: [S]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: sulk.eyeroll
+  layer: character
+  clip: sulk.eyeroll
+  frames: 6
+  fps: 5
+  loop: false
+  dirs: [S]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: swing.heavy
+  layer: character
+  clip: swing.heavy
+  frames: 6
+  fps: 8
+  loop: false
+  contact: [4]
+  dirs: [S, W, E, N]
+  overlays: [front.arms, held.axe, held.pick]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: swing.light
+  layer: character
+  clip: swing.light
+  frames: 6
+  fps: 10
+  loop: false
+  contact: [3]
+  dirs: [S, W, E, N]
+  overlays: [held.sickle]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: think
+  layer: character
+  clip: think
+  frames: 4
+  fps: 3
+  loop: true
+  dirs: [S, W, E, N]
+  overlays: [status.query]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: think.eureka
+  layer: character
+  clip: think.eureka
+  frames: 6
+  fps: 8
+  loop: false
+  dirs: [S, W, E, N]
+  overlays: [front.arms, status.bulb]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: think.loading
+  layer: character
+  clip: think.loading
+  frames: 4
+  fps: 8
+  loop: true
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: wade
+  layer: character
+  clip: wade
+  frames: 8
+  fps: 7
+  loop: true
+  contact: [1, 5]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: walk.carry
+  layer: character
+  clip: walk.carry
+  frames: 8
+  fps: 9
+  loop: true
+  contact: [1, 5]
+  dirs: [S, W, E, N]
+  overlays: [back.bundle]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: walk.slope_down
+  layer: character
+  clip: walk.slope_down
+  frames: 8
+  fps: 11
+  loop: true
+  contact: [1, 5]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: walk.slope_up
+  layer: character
+  clip: walk.slope_up
+  frames: 8
+  fps: 8
+  loop: true
+  contact: [1, 5]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: walk.tired
+  layer: character
+  clip: walk.tired
+  frames: 8
+  fps: 7
+  loop: true
+  contact: [1, 5]
+  dirs: [S, W, E, N]
+  overlays: []
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: workbench
+  layer: character
+  clip: workbench
+  frames: 6
+  fps: 5
+  loop: true
+  contact: [3]
+  dirs: [S]
+  overlays: [status.sparks]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
+  licence: original
+  author: "the creator"
+- id: write
+  layer: character
+  clip: write
+  frames: 4
+  fps: 3
+  loop: true
+  dirs: [S]
+  overlays: [held.notebook]
+  worn: [back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  emissive: true
+  placeholder: false
   licence: original
   author: "the creator"
 - id: faces
   layer: overlay
-  # approved seven + embarrassed, closed, squint (placeholders); S 18×8, E/W 4×8
-  states: [idle, happy, thinking, sad, surprised, blink, off, embarrassed, closed, squint]
+  # S 18×11, E/W 4×11 cells; the first seven are the approved reference set
+  states: [idle, happy, thinking, sad, surprised, blink, off, embarrassed, closed, squint, tired, very_tired, loading_0, loading_1, loading_2, loading_3, roll_ul, roll_u, roll_ur, unimpressed]
   emissive: true
-  placeholder: true
+  placeholder: false
   licence: original
   author: "the creator"
