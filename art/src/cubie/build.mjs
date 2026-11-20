@@ -18,6 +18,12 @@ import { APPROVED_FACES, FACE_NAMES, PINK, TEAL, W, H, draw } from './model.mjs'
 import { CLIPS } from './clips.mjs';
 import { WEAR } from './wear.mjs';
 import { GEAR_STARTER } from './gear.mjs';
+import { GEAR_BACK } from './gear-back.mjs';
+// the rest of the gear catalogue (docs/design/08-gear.md §3) rides only idle and walk for
+// now, as worn overlays to review; how all of it reaches every clip without baking
+// thousands of strips is gear §8.4 (stamps and part maps), not built yet
+const GEAR_CATALOGUE = { ...GEAR_BACK };
+const CATALOGUE_CLIPS = ['idle', 'walk'];
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../../..');
@@ -44,7 +50,8 @@ const only = args.includes('--only') ? args[args.indexOf('--only') + 1].split(',
 fs.mkdirSync(out, { recursive: true });
 for (const [clip, c] of Object.entries(CLIPS)) {
   if (only && !only.includes(clip)) continue;
-  const overlays = { ...(c.overlays ?? {}), ...(c.wear === false ? {} : { ...WEAR, ...GEAR_STARTER }) };
+  const cat = CATALOGUE_CLIPS.includes(clip) ? GEAR_CATALOGUE : {};
+  const overlays = { ...(c.overlays ?? {}), ...(c.wear === false ? {} : { ...WEAR, ...GEAR_STARTER }), ...cat };
   const FH = c.model?.frameH ?? H; // leg-kit variants (gear §5) are 32×64
   const dirs = c.dirs; const posesFor = (d) => (typeof c.poses === 'function' ? c.poses(d) : c.poses);
   const n = posesFor(dirs[0]).length;
@@ -90,7 +97,7 @@ for (const [clip, c] of Object.entries(CLIPS)) {
   for (const [k, o] of Object.entries(ovs)) { writePng(path.join(out, `${clip}.${k}.png`), o.base); if (o.em.data.some((v, i) => i % 4 === 3 && v)) writePng(path.join(out, `${clip}.${k}_emissive.png`), o.em); }
   writePng(path.join(out, `${clip}.png`), base);
   writePng(path.join(out, `${clip}_emissive.png`), em);
-  const json = { clip, frame: { w: W, h: FH }, ...(c.kit ? { kit: c.kit } : {}), count: n, fps: c.fps, loop: c.loop, dirs, ...(c.contact ? { contact: c.contact } : {}), ...(c.face ? { face: c.face } : {}), ...(c.airborne ? { airborne: true } : {}), worn: [...(c.worn ?? []), ...(c.wear === false ? [] : [...Object.keys(WEAR), ...Object.keys(GEAR_STARTER)])], anchors: { face: anchors, hands: handAnchors } };
+  const json = { clip, frame: { w: W, h: FH }, ...(c.kit ? { kit: c.kit } : {}), count: n, fps: c.fps, loop: c.loop, dirs, ...(c.contact ? { contact: c.contact } : {}), ...(c.face ? { face: c.face } : {}), ...(c.airborne ? { airborne: true } : {}), worn: [...(c.worn ?? []), ...(c.wear === false ? [] : [...Object.keys(WEAR), ...Object.keys(GEAR_STARTER)]), ...Object.keys(cat)], anchors: { face: anchors, hands: handAnchors } };
   fs.writeFileSync(path.join(out, `${clip}.json`), `${JSON.stringify(json, null, 1)}\n`);
   console.log(`${clip}: ${n} frames × ${dirs.join(',')} @ ${c.fps} fps`);
 }

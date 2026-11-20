@@ -34,7 +34,19 @@
   "outfit.apron",
   "outfit.rain_poncho",
   "outfit.tool_belt",
-  "outfit.boots"
+  "outfit.boots",
+  "back.solar_backpack",
+  "back.big_battery",
+  "back.jet_pack",
+  "back.glider_wings",
+  "back.tank_pack",
+  "back.water_tank",
+  "back.parachute",
+  "back.drone_dock",
+  "back.antenna_mast",
+  "back.backpack_kitchen",
+  "back.snail_house",
+  "back.balloon_pack"
  ],
  "anchors": {
   "face": {

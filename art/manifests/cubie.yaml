@@ -16,7 +16,7 @@
   loop: true
   dirs: [S, W, E, N]
   overlays: []
-  worn: [held.axe, held.pick, held.shovel, held.map_board, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  worn: [held.axe, held.pick, held.shovel, held.map_board, back.battery_pack, back.cargo_frame, tint.wet, status.wet, back.solar_backpack, back.big_battery, back.jet_pack, back.glider_wings, back.tank_pack, back.water_tank, back.parachute, back.drone_dock, back.antenna_mast, back.backpack_kitchen, back.snail_house, back.balloon_pack]
   emissive: true
   placeholder: false
   licence: original
@@ -30,7 +30,7 @@
   contact: [1, 5]
   dirs: [S, W, E, N]
   overlays: []
-  worn: [held.axe, held.pick, held.shovel, held.map_board, back.battery_pack, back.cargo_frame, tint.wet, status.wet]
+  worn: [held.axe, held.pick, held.shovel, held.map_board, back.battery_pack, back.cargo_frame, tint.wet, status.wet, back.solar_backpack, back.big_battery, back.jet_pack, back.glider_wings, back.tank_pack, back.water_tank, back.parachute, back.drone_dock, back.antenna_mast, back.backpack_kitchen, back.snail_house, back.balloon_pack]
   emissive: true
   placeholder: false
   licence: original
