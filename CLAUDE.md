@@ -52,6 +52,35 @@ order in `docs/design/00-master-plan.md`. Session briefs are in `docs/sessions/`
 - Prefer `uv` for Python, `npm` for the site, systemd units in `deploy/`, plain
   Python for the sim (no game engine on the Pi), Phaser 3 for the renderer.
 
+## Project work list — every session
+
+This repo's work is tracked on the office's project work list **"Cubie"**,
+through the Memory connector's `work_*` tools (`mcp__Memory__work_list`,
+`work_add`, `work_claim`, `work_release`, `work_update`). They are often
+deferred: load them with ToolSearch (search `work_`). If the connector is not
+available, say so in your first reply and carry on.
+
+1. **Check.** At the start of every piece of work, call `work_list` with
+   `repo: "samuelblackbourn/cubie-live"`. Many items already exist, filed by
+   sweeps and earlier sessions with full handoff descriptions. If one covers
+   your task, claim and use it instead of adding a duplicate.
+2. **Add.** Before you start, `work_add` each new thing you were asked for or
+   noted, one item per request with its parts as sub-items. Write the description
+   so a session with no context can pick it up: context, current state, steps,
+   what it is blocked on, how to tell it is done, links (PR, branch, files).
+3. **Claim.** `work_claim` an item before you work on it, passing your own
+   session link as `session` (`https://claude.ai/code/session_…`; `get_session`
+   with no id returns it) and the same value on every call. Never start an item
+   someone else holds. Claim again to renew on long work.
+4. **Complete.** Finish with `work_update` `{status: "done", note: where it
+   landed}` (PR, commit, link) only with evidence. For anything unfinished, add a
+   note saying how far you got and what is next, then `work_release`. An item
+   marked `[check: maybe done]` needs checking: close it with the evidence, or
+   remove the mark.
+
+The work list is not the creator's own to-do list (`pa_todo_*`) and not the
+office backlog. Never write a secret, token or key into an item.
+
 ## Layout (grows by phase)
 
 ```
